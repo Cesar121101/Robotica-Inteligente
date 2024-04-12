@@ -17,6 +17,6 @@
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rvizconfig)" required="true" /> 
 
     <node name="SLM_Sim" pkg="slm_sim" type="slm_sim.py"/>
-    <node name="Sig_generator" pkg="slm_sim" type="signal.py"/>
+    <node name="Sig_generator" pkg="slm_sim" type="signal_gen.py"/>
 
 </launch>
