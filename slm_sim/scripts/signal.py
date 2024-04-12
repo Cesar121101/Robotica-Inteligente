@@ -23,9 +23,9 @@ if __name__=='__main__':
 
             if (rospy.get_time()-previous_time) >= 10:
                 signal = 1.0; 
-                previous_time = rospy.get_time()
-            if (rospy.get_time()-previous_time) >= 1:
-                signal = 0.0
+            else: 
+                signal = 0
+            previous_time = rospy.get_time()
 
             # Publish new angle
             sig_pub.publish(signal)
