@@ -25,7 +25,11 @@ if __name__=='__main__':
                 signal = 1.0
                 previous_time = rospy.get_time() 
             elif(rospy.get_time()-previous_time) >= 1: 
+<<<<<<< HEAD:slm_sim/scripts/signal_gen.py
                 signal = 0.0
+=======
+                signal = 0
+>>>>>>> faa39df9f94349206c4ed434e6dd5d0f27f1c43d:slm_sim/scripts/signal.py
 
             # Publish new angle
             sig_pub.publish(signal)
