@@ -17,18 +17,15 @@ if __name__=='__main__':
 
         previous_time = rospy.get_time()
         signal = 1.0
-        flag = 1
+
 
         while not rospy.is_shutdown():
 
-            if (rospy.get_time()-previous_time) >= 8:
-                if flag == 1.0:
-                    signal = 0.0
-                    flag = 0
-                else:
-                    signal = 1.0
-                    flag = 1
+            if (rospy.get_time()-previous_time) >= 10:
+                signal = 1.0; 
                 previous_time = rospy.get_time()
+            if (rospy.get_time()-previous_time) >= 1:
+                signal = 0.0
 
             # Publish new angle
             sig_pub.publish(signal)
