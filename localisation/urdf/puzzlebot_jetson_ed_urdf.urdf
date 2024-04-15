@@ -1,7 +1,6 @@
 <?xml version="1.0"?>
 <robot name="Puzzlebot Jetson-Lidar Ed.">
 
-
 <!-- Dummy link to fiz robot chassis -->
   <link name="base_link">
   </link>
@@ -14,12 +13,12 @@
 
     <link name="chassis">
         <inertial>
-            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <origin xyz="0 0 0" rpy="1.57079632679 0 1.57079632679"/>
             <mass value="0.01" />
             <inertia ixx="7.58333333333e-06" ixy="0.0" ixz="0.0" iyy="7.58333333333e-06" iyz="0.0" izz="1.25e-05"/>
         </inertial>
         <collision>
-            <origin rpy="0 0 0" xyz="0 0 0"/>
+            <origin rpy="1.57079632679 0 1.57079632679" xyz="0 0 0"/>
             <geometry>
                 <mesh filename="package://localisation/models/MCR2_1000_13_Chassis.stl"/>
             </geometry>
@@ -32,9 +31,83 @@
         </visual>
     </link>
 
+    <link name="wl_link">
+        <intertal>
+            <origin xyz="0 0 0" rpy="1.57079632679 0 0"/>
+            <mass value="0.03" />
+            <inertia ixx="2.0171875e-05" ixy="0.0" ixz="0.0" iyy="2.0171875e-05" iyz="0.0" izz="3.984375e-05" />
+        </intertal>
+        <collision>
+            <origin rpy="1.57079632679 0 0" xyz="0 0 0"/>
+            <geometry>
+                <mesh filename="package://localisation/models/MCR2_1000_1_1_Wheel_Coupler_2.stl"/>
+            </geometry>
+        </collision>
+        <visual>
+            <origin rpy="1.57079632679 0 0" xyz="0 0 0"/>
+            <geometry>
+                <mesh filename="package://localisation/models/MCR2_1000_1_1_Wheel_Coupler_2.stl"/>
+            </geometry>
+        </visual>
+    </link>
+
+    <joint name="leftWheel" type="fixed">
+        <parent link="chassis"/>
+        <child link="wl_link"/>
+        <origin xyz="0.05 0.0955 0"/>
+        <!--axis xyz="0 1 0"/-->
+    </joint>
+
+    <link name="wr_link">
+        <inertial>
+            <origin xyz="0 0 0" rpy="1.57079632679 0 3.14159265349"/>
+            <mass value="0.03" />
+            <inertia ixx="2.0171875e-05" ixy="0.0" ixz="0.0" iyy="2.0171875e-05" iyz="0.0" izz="3.984375e-05" />
+        </inertial>
+        <collision>
+            <origin rpy="1.57079632679 0 3.14159265349" xyz="0 0 0"/>
+            <geometry>
+                <mesh filename="package://localisation/models/MCR2_1000_1_1_Wheel_Coupler_2.stl"/>
+            </geometry>
+        </collision>
+        <visual>
+            <origin rpy="1.57079632679 0 3.14159265349" xyz="0 0 0"/>
+            <geometry>
+                <mesh filename="package://localisation/models/MCR2_1000_1_1_Wheel_Coupler_2.stl"/>
+            </geometry>
+        </visual>
+    </link>
+
+    <joint name="rightWheel" type="fixed">
+        <parent link="chassis"/>
+        <child link="wr_link"/>
+        <origin xyz="0.05 -0.0955 0"/>
+        <!--axis xyz="0 1 0"/-->
+    </joint>
 
 
-<!-- FINISH THE URDF-->
 
+<!-- TRANSMISSIONS (For a more complex model and it represents actuator attributes) -->
+<transmission name="right_wheel_trans">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="rightWheel">
+    	<hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="right_wheel_motor">
+      <mechanicalReduction>34</mechanicalReduction>
+       <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+    </actuator>
+  </transmission>
+
+<transmission name="left_wheel_trans">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="base_to_left_w">
+    	<hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="leftWheel">
+      <mechanicalReduction>34</mechanicalReduction>
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+    </actuator>
+</transmission>  
 
 </robot>
