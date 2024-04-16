@@ -168,6 +168,7 @@ include_directories(
    scripts/localisation.py 
    scripts/joint_state_pub.py
    scripts/puzzlebot_kinematic_model.py
+   scripts/controller.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
  )
 
