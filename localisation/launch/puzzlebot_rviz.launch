@@ -11,4 +11,8 @@
         <arg name="rvizconfig" default="$(find slm_sim)/rviz/manipulator.rviz" />
         <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rvizconfig)" required="true" /> 
 
+        <rosparam file="$(find localisation)/config/params.yaml" />
+        
+        <node name="puzzlebot_kinematic_model" pkg="localisation" type="puzzlebot_kinematic_model.py"/>
+        <node name="contoller" pkg="localisation" type="controller.py"/>
 </launch>
