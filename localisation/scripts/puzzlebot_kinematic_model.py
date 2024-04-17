@@ -4,22 +4,24 @@ import numpy as np
 from std_msgs.msg import Float32
 from geometry_msgs.msg import Twist
 
-#Declare Variables to be used
+#Global variables
+
 # pose = JointState()
 msgRobot = Twist()
-#WHEEL VAR
+
+#Wheel constants
 R = 5
 WHEELBASE = 19
 L = 16
 
-
+# Obtaining cmd vel
 def callback_cmd(msg):
     global msgRobot
     msgRobot.linear.x = msg.linear.x
     msgRobot.angular.z = msg.angular.z
 
 
-#Getting Position - SOLVER
+# Getting Position - Solver
 def pose_obtainal(lin_vel, ang_vel):
     ang = ang_vel * np.sin(ang_vel)
     x_vel = lin_vel * np.cos(ang)
@@ -27,49 +29,44 @@ def pose_obtainal(lin_vel, ang_vel):
 
     return x_vel,y_vel
    
-#DIFFERENTIAL DRIVE MODEL
+# Differential Model Solver
 def diff_model(lin_vel, ang_vel):
-   #!One wheel is twice as fast as other wheel
-   # wr = 2*wl
-   # wl = 1/2 wr
-#    wr = (ang*L) / (3*R)
-#    wl = (2*ang*L) / (3*R)
+    # One wheel is twice as fast as other wheel
+    # wr = 2*wl
+    # wl = 1/2 wr
+    # wr = (ang*L) / (3*R)
+    # wl = (2*ang*L) / (3*R)
 
     # wr = (2*lin_vel) / (R)
-    # # wl = - (2*lin_vel) / (R) 
+    # wl = - (2*lin_vel) / (R) 
     # wl = (2*lin_vel) / (R) - 2*wr
 
     wl = ((2 * lin_vel) - (L * ang_vel)) / (2 * R)
     wr = ((2 * lin_vel) / R) - wl
 
-    # print (wl,"/",wr)
-
     return wr, wl
    
-   
-
 if __name__=="__main__":
     rospy.init_node("puzzlebot_kinematic_model")
 
-    #Setup de publishers
-    #   pose_pub = rospy.Publisher("pose", Float32 , queue_size=10)
+    # Publishers
+    # pose_pub = rospy.Publisher("pose", Float32 , queue_size=10)
     wr_pub = rospy.Publisher("wr", Float32 , queue_size=10)
     wl_pub = rospy.Publisher("wl", Float32 , queue_size=10)
-    #Set Subscriber
+    
+    # Subscribers
     rospy.Subscriber("cmd_vel", Twist , callback=callback_cmd)
-
 
     pose_pub = rospy.Publisher("pose", Twist , queue_size=10)
 
-    # rate = rospy.get_time()
     rate = rospy.Rate(rospy.get_param("~node_rate",100))
 
-    #Run the node
+    #Main loop
     try:
         while not rospy.is_shutdown():
             
             # cmd_sub = rospy.Subscriber("wr", Twist, msgRobot)
-            #rospy.spin() #last line without while
+            # rospy.spin() #last line without while
 
             linear_vel = msgRobot.linear.x
             angular_vel = msgRobot.angular.z
@@ -89,14 +86,14 @@ if __name__=="__main__":
             # msgRobot.linear.x = x_dot
             # msgRobot.linear.y = y_dot
             # msgRobot.angular.z = angular_vel
-        #   pose.header.stamp = rospy.Time.now()
-        #   pose.name = ["pose"]
-        #   pose.positionX = [x]
-        #   pose.positionY = [y]
+            # header.stamp = rospy.Time.now()
+            # pose.name = ["pose"]
+            # pose.positionX = [x]
+            # pose.positionY = [y]
 
-
-        #   pose_sub.publish(pose)
+            # pose_sub.publish(pose)
 
             rate.sleep()
+
     except rospy.ROSInterruptException:
-        pass #Initialize and Setup node
+        pass
