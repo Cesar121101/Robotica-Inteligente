@@ -5,9 +5,8 @@ from std_msgs.msg import Float32
 from geometry_msgs.msg import Twist
 
 #Global variables
-
-# pose = JointState()
 msgRobot = Twist()
+# pose = JointState()
 
 #Wheel constants
 R = 5
