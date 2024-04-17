@@ -4,7 +4,7 @@ import numpy as np
 from std_msgs.msg import Float32
 from sensor_msgs.msg import JointState
 from nav_msgs.msg import Odometry
-from geometry_msgs.msg import Transform,Quaternion,TransformStamped
+from geometry_msgs.msg import Transform,TransformStamped
 from tf2_msgs.msg import TFMessage
 from tf.transformations import quaternion_from_euler
 
@@ -100,15 +100,12 @@ if __name__=='__main__':
     transformWL_current.rotation.z = 0.0
     transformWL_current.rotation.w = 1.0
 
-    prevTime = rospy.get_time()
     try:
         while not rospy.is_shutdown():
-            currentTime = rospy.get_time()
-            deltaTime = currentTime-prevTime
 
             # Joint states
-            wr_pos = wr_pos + wr*deltaTime
-            wl_pos = wl_pos + wl*deltaTime
+            wr_pos = wr_pos + wr*0.01
+            wl_pos = wl_pos + wl*0.01
             
             jointstate_result.position = [wr_pos, wl_pos]
             jointstate_result.header.stamp = rospy.Time.now() 

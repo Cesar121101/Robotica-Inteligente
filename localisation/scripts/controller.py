@@ -132,12 +132,14 @@ def PID_Position(error):
     # P
     #Kp = rospy.get_param("Kp_Position", "No param found")
     #P = Kp*error
-    P = 0.7*error
+    #P = 0.7*error
+    P = 20.0*error
 
     # I
     superError1 += error * dt
     #Ki = rospy.get_param("Ki_Position", "NO param found")
-    I = superError1*0.0065
+    #I = superError1*0.0065
+    I = 0.0
 
     # D
     #Kd = rospy.get_param("Kd_Position", "NO param found")
@@ -158,12 +160,14 @@ def PID_Orientation(error):
     # P
     #Kp = rospy.get_param("Kp_Orientation", "No param found")
     #P = Kp*error
-    P = 0.0005*error
+    #P = 0.0005*error
+    P = 2.0*error
 
     # I
     superError2 += error * dt
     #Ki = rospy.get_param("Ki_Orientation", "NO param found")
-    I = superError2*0.006
+    #I = superError2*0.006
+    I = 0.0
 
     # D
     #Kd = rospy.get_param("Kd_Orientation", "NO param found")
