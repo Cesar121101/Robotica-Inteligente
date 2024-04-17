@@ -6,11 +6,10 @@ from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist,Pose,Quaternion
 from tf.transformations import quaternion_from_euler
 
-#Declare Variables to be used
+# Global variables
 odom_result = Odometry()
 pose_result = Pose()
 twist_result = Twist()
-
 wl = 0.0
 wr = 0.0
 deltaAngle = 0.0
@@ -24,15 +23,17 @@ l = 0.191
 r = 0.05
 
 
-# Define the callback functions
+# Getting Wl
 def callback_wl(msg):
     global wl
     wl = msg.data
 
+# Getting Wr
 def callback_wr(msg):
     global wr
     wr = msg.data
 
+# Main loop
 if __name__=='__main__':
     #Initialize and Setup node
     rospy.init_node("localisation")
@@ -41,11 +42,11 @@ if __name__=='__main__':
     # Configure the Node
     loop_rate = rospy.Rate(rospy.get_param("~node_rate",100))
 
-    # Setup the Subscribers
+    # Subscribers
     wr_sub = rospy.Subscriber("wr", Float32, callback_wr)
     wl_sub = rospy.Subscriber("wl", Float32, callback_wl)
 
-    #Setup de publishers
+    # Publishers
     odom_pub = rospy.Publisher("odom", Odometry , queue_size=10)
 
     prevTime = rospy.get_time()
@@ -57,11 +58,11 @@ if __name__=='__main__':
 
             # Linear Speed and Angular Speed
             v = (r/2)*(wr+wl)
-            angSpeed = (r/l)*(wr-wl)
+            w = (r/l)*(wr-wl)
 
             # Deltas
             deltaDist = v*deltaTime
-            deltaAngle = angSpeed*deltaTime
+            deltaAngle = w*deltaTime
 
             # Currents
             xCurrent = xPrev + deltaDist*np.cos(prevAngle)
@@ -91,7 +92,7 @@ if __name__=='__main__':
             twist_result.linear.x = v
             twist_result.linear.y = 0.0
             twist_result.linear.z = 0.0
-            twist_result.angular.z = angSpeed
+            twist_result.angular.z = w
             twist_result.angular.x = 0.0
             twist_result.angular.y = 0.0
 

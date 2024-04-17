@@ -18,7 +18,6 @@ transformSWR_current = TransformStamped()
 transform_current = Transform()
 transformWL_current = Transform()
 transformWR_current = Transform()
-
 odom_current = Odometry()
 wl = 0.0
 wr = 0.0
