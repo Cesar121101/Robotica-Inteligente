@@ -9,9 +9,8 @@ msgRobot = Twist()
 # pose = JointState()
 
 #Wheel constants
-R = 5
-WHEELBASE = 19
-L = 16
+R = 0.05
+L = 0.191
 
 # Obtaining cmd vel
 def callback_cmd(msg):

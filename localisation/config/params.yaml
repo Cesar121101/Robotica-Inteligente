@@ -1,8 +1,8 @@
 # List of points
-points: [[0.0, 0.0, "N"], [1.0, 0.0, 90], [1.0, 1.0, 180], [0.0, 1.0, 270], [0.0, 0.0, "N"]]
-linear_vel_max: 1000.0
-angular_vel_max: 10.0
-linear_vel_min: 0.0
-angular_vel_min: 2.0
+points: [[0.0, 0.0, "N"], [1.0, 0.0,"N"], [1.0, 1.0, "N"], [0.0, 1.0, "N"], [0.0, 0.0, "N"]]
+linear_vel_max: 1.0
+angular_vel_max: 3.0
+linear_vel_min: 0.05
+angular_vel_min: 0.01
 linear_velocity : 0.0
 angular_velocity : 0.0

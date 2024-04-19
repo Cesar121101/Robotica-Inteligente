@@ -9,6 +9,7 @@ from nav_msgs.msg import Odometry
 from sensor_msgs.msg import Imu
 
 command = Twist()
+setpoint = Twist()
 poseRobot = Pose()
 points = rospy.get_param("/points")
 linear_vel_max = rospy.get_param("/linear_vel_max")
@@ -85,6 +86,7 @@ def wrap_to_system(angle, prevAngle):
         return angle
 
 def get_angle_robot_and_orientation(robot_orientation, points_poses, current_point):
+    global setpoint
     vectorL = 1
     robotV = [0.0, 0.0]
     point = [0.0,0.0]
@@ -133,7 +135,7 @@ def PID_Position(error):
     #Kp = rospy.get_param("Kp_Position", "No param found")
     #P = Kp*error
     #P = 0.7*error
-    P = 20.0*error
+    P = 0.5*error
 
     # I
     superError1 += error * dt
@@ -161,7 +163,7 @@ def PID_Orientation(error):
     #Kp = rospy.get_param("Kp_Orientation", "No param found")
     #P = Kp*error
     #P = 0.0005*error
-    P = 2.0*error
+    P = 0.5*error
 
     # I
     superError2 += error * dt
@@ -188,6 +190,15 @@ def init_command():
     command.angular.y = 0.0
     command.angular.z = 0.0
 
+def init_setpoint():
+    global setpoint
+    setpoint.linear.x = 0.0
+    setpoint.linear.y = 0.0
+    setpoint.linear.z = 0.0
+    setpoint.angular.x = 0.0
+    setpoint.angular.y = 0.0
+    setpoint.angular.z = 0.0
+
 if __name__ == '__main__':
     pub = rospy.Publisher("/cmd_vel", Twist, queue_size=10)
 
@@ -198,12 +209,14 @@ if __name__ == '__main__':
     orientation_error_pub = rospy.Publisher("/controller/orientError", Float32, queue_size=10)
     orientation_goal_pub = rospy.Publisher("/controller/orientGoal", Float32, queue_size=10)
     orientation_real_pub = rospy.Publisher("/controller/orientReal", Float32, queue_size=10)
+    setpoint_pub = rospy.Publisher("/controller/setpoint", Twist, queue_size=10)
 
     rospy.Subscriber("/odom", Odometry, get_odometry)
     rospy.init_node("controller")
     rate = rospy.Rate(100)
 
     init_command()
+    init_setpoint()
     points_poses = generate_poses()
     current_point = 0
     current_state = 0
@@ -234,6 +247,8 @@ if __name__ == '__main__':
         orientation_error_pub.publish(angle_error)
         orientation_goal_pub.publish(angle_goal)
         orientation_real_pub.publish(robot_orientation)
+        #setpoint_pub.publish(setpoint)
+        setpoint.angular.z = angle_goal*180/np.pi    
 
         if current_state == 0:
             print("NEXT POINT")
@@ -241,22 +256,25 @@ if __name__ == '__main__':
                 print("DONE")
             else:
                 current_point += 1
-                arm_status = 0
                 current_state = 1
                 superError1 = 0.0
                 superError2 = 0.0
+                setpoint.linear.x = points_poses[current_point].position.x
+                setpoint.linear.y = points_poses[current_point].position.y
+                setpoint.linear.z = 0.0
+                setpoint.angular.x = 0.0
+                setpoint.angular.y = 0.0
+                #setpoint.angular.z = angle_goal*180/np.pi
             prevAngle = robot_orientation
             new_robot_orientation = robot_orientation
-            
         
         elif current_state == 1:
             print("GETTING ANGLE")
 
             angle_indp = get_angle_robot_and_point(robot_orientation, robot_position, points_poses, current_point)
-            angle_goal = new_robot_orientation + angle_indp
+            angle_goal = new_robot_orientation + angle_indp  
 
             current_state = 2
-            
 
         elif current_state == 2:
             print("SETTING ANGLE")
@@ -280,7 +298,7 @@ if __name__ == '__main__':
             print("angle Error: ", angle_error)
             print("angular vel: ", angular_vel)
 
-            if np.abs(angle_error) < 0.018:
+            if np.abs(angle_error) < 0.0018:
                 print("DONE")
                 current_state = 3
                 command.linear.x = 0.0
@@ -320,7 +338,7 @@ if __name__ == '__main__':
             print("dist Error: ", dist_error)
             print("linear vel: ", linear_vel)
 
-            if np.abs(dist_error) < 0.02:
+            if np.abs(dist_error) < 0.002:
                 print("DONE")
                 if points_poses[current_point].orientation.z == "N":
                     current_state = 0
@@ -366,12 +384,8 @@ if __name__ == '__main__':
             print("angle Error: ", angle_error_adj)
             print("angular vel: ", angular_vel_adj)
 
-            if np.abs(angle_error_adj) < 0.018:
+            if np.abs(angle_error_adj) < 0.0018:
                 print("DONE")
-                # if points_poses[current_point].orientation.x == 0:
-                #    current_state = 0
-                # else:
-                #     current_state = 7
                 current_state = 0
                 command.linear.x = 0.0
                 command.angular.z = 0.0
@@ -385,5 +399,6 @@ if __name__ == '__main__':
         prevAngle = robot_orientation
 
         pub.publish(command)
+        setpoint_pub.publish(setpoint)
 
         rate.sleep()
