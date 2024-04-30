@@ -16,6 +16,6 @@
         <node name="puzzlebot_kinematic_model" pkg="challenge" type="puzzlebot_kinematic_model.py"/>
         <node name="contoller" pkg="challenge" type="controller.py"/>
         <node name="joint_state_pub" pkg="challenge" type="joint_state_pub.py"/>
-        <node name="challenge" pkg="challenge" type="challenge.py"/>
+        <node name="challenge" pkg="challenge" type="localisation.py"/>
         
 </launch>
