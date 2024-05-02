@@ -43,8 +43,8 @@ if __name__=='__main__':
     loop_rate = rospy.Rate(rospy.get_param("~node_rate",100))
 
     # Subscribers
-    wr_sub = rospy.Subscriber("wr", Float32, callback_wr)
-    wl_sub = rospy.Subscriber("wl", Float32, callback_wl)
+    wr_sub = rospy.Subscriber("kf_wr", Float32, callback_wr)
+    wl_sub = rospy.Subscriber("kf_wl", Float32, callback_wl)
 
     # Publishers
     odom_pub = rospy.Publisher("odom", Odometry , queue_size=10)

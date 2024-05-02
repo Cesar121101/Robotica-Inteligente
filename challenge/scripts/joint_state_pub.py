@@ -49,8 +49,8 @@ if __name__=='__main__':
 
     # Setup the Subscribers
     odom_sub = rospy.Subscriber("odom", Odometry, callback_odom)
-    wr_sub = rospy.Subscriber("wr", Float32, callback_wr)
-    wl_sub = rospy.Subscriber("wl", Float32, callback_wl)
+    wr_sub = rospy.Subscriber("kf_wr", Float32, callback_wr)
+    wl_sub = rospy.Subscriber("kf_wl", Float32, callback_wl)
 
     #Setup de publishers
     tf_pub = rospy.Publisher("tf", TFMessage, queue_size=1)
