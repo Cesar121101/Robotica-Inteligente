@@ -21,8 +21,21 @@ zAngle = 0.0
 prevAngle = 0.0
 l = 0.191
 r = 0.05
+kr = 0.5
+kl = 0.5
+covariance = np.matrix([[0.0, 0.0, 0.0],[0.0, 0.0, 0.0],[0.0, 0.0, 0.0]])
 
+# Calculate Q for k moment (current)
+def cal_q(wr, wl, deltaTime, prevAngle):
+    triang = np.matrix([[0.5*r*deltaTime*np.cos(prevAngle), 0.5*r*deltaTime*np.cos(prevAngle)],[0.5*r*deltaTime*np.sin(prevAngle), 0.5*r*deltaTime*np.sin(prevAngle)],[0.5*r*deltaTime*(2.0/l),0.5*r*deltaTime*(2.0/l)]])
+    s = np.matrix([[kr*np.abs(wr), 0.0],[0.0, kl*np.abs(wl)]])
+    q = triang*s*np.transpose(triang)
+    return q
 
+# Calculate H
+def cal_h(prevAngle, linearV, deltaTime):
+    return np.matrix([[1.0, 0.0, -deltaTime*linearV*np.sin(prevAngle)],[0.0, 1.0, deltaTime*linearV*np.cos(prevAngle)],[0.0, 0.0, 1.0]])
+    
 # Getting Wl
 def callback_wl(msg):
     global wl
@@ -71,6 +84,12 @@ if __name__=='__main__':
 
             print("X: ", xCurrent,", Y: ",  yCurrent, ", Angle: ", zAngle)
 
+            # Calculate Covariance
+            Q = cal_q(wr, wl, deltaTime, prevAngle)
+            H = cal_h(prevAngle, v, deltaTime)
+
+            covariance = H*covariance*np.transpose(H) + Q
+
             # Update prevs
             xPrev = xCurrent
             yPrev = yCurrent
@@ -97,7 +116,18 @@ if __name__=='__main__':
             twist_result.angular.y = 0.0
 
             # Build odom
+            odom_result.header.stamp = rospy.Time.now()
+            odom_result.header.frame_id = "odom"
+            odom_result.child_frame_id = "base_link"
             odom_result.pose.pose = pose_result
+
+            new_cov = [covariance.item(0, 0), covariance.item(0, 1), 0.0, 0.0, 0.0, covariance.item(0, 2), 
+                       covariance.item(1, 0), covariance.item(1, 1), 0.0, 0.0, 0.0, covariance.item(1, 2),
+                       0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                       0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                       0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                       covariance.item(2, 0), covariance.item(2, 1), 0.0, 0.0, 0.0, covariance.item(2, 2)]
+            odom_result.pose.covariance = new_cov
             odom_result.twist.twist = twist_result
             print(odom_result)
 
