@@ -1,0 +1,48 @@
+<launch>
+
+  <node name="camera" pkg="camera_pkg" type="your_camera_node.py"  output="screen" launch-prefix="gnome-terminal --command"  />
+
+   <!-- Launch the tracking node -->
+  <node pkg="visp_tracker" type="tracker" name="tracker_mbt">
+    <param name="camera_prefix" value="/camera/image_raw" />
+  </node>
+
+  <!-- Launch the client (GUI).
+
+       It is mandatory to provide an initial estimation of the object
+       position in order to start the tracking. To achieve this, this
+       graphical tool can be used. It is not required to call it
+       through this launch file, you can also directly call the
+       initialization service to provide the initial estimation.
+
+       The model_path variable can either be a standard Unix path or a
+       path using the resource_retriever syntax.
+       See http://ros.org/wiki/resource_retriever
+
+    -->
+  <node pkg="visp_tracker" type="visp_tracker_client" name="tracker_mbt_client">
+    <param name="model_path" value="package://visp_tracker/models" />
+    <param name="model_name" value="laas-box" />
+    <param name="tracker_type" value="mbt+klt" />
+    <param name="frame_size" value="0.2" />
+
+    <!-- Load recommended settings for tracking initialization. They
+      will be automatically forwarded to the tracking node if the
+      initialization succeed. -->
+    <rosparam file="$(find visp_tracker)/models/laas-box/tracker.yaml" />
+  </node>
+
+
+  <!-- Launch the viewer (GUI)
+
+       This is totally optional. When the tracker is running on a
+       remote computer, it is highly recommended to rely on
+       image_transport to stream compressed images. You can use the
+       ~image_transport parameter to do so, see the image_transport
+       package documentation for more information.
+  -->
+  <node pkg="visp_tracker" type="visp_tracker_viewer" name="tracker_mbt_viewer">
+    <param name="frame_size" value="0.2" />
+    <param name="tracker_name" value="tracker_mbt" />
+  </node>
+</launch>
