@@ -169,6 +169,7 @@ include_directories(
    scripts/joint_state_pub.py
    scripts/controller.py
    scripts/kalman_filter.py
+   scripts/servo.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
  )
 
