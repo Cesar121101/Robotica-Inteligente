@@ -298,7 +298,12 @@ if __name__ == '__main__':
             print("angle Error: ", angle_error)
             print("angular vel: ", angular_vel)
 
-            if np.abs(angle_error) < 0.0018:
+            rospy.loginfo("robot angle: %f", robot_orientation)
+            rospy.loginfo("angle Goal: %f", angle_goal)
+            rospy.loginfo("angle Error: %f", angle_error)
+            rospy.loginfo("angular vel: %f", angular_vel)
+
+            if np.abs(angle_error) < 0.1:
                 print("DONE")
                 current_state = 3
                 command.linear.x = 0.0

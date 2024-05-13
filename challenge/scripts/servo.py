@@ -20,17 +20,19 @@ if __name__=='__main__':
     try:
         while not rospy.is_shutdown():
 
-            if degrees < 250.0 and isClosing == 1:
+            if degrees < 70.0 and isClosing == 1:
                 degrees += 5
             elif degrees >= 0 and isClosing == 0:
                 degrees -= 5
 
-            if degrees == 250.0:
+            if degrees == 70.0:
+                time.sleep(5.0)
                 isClosing = 0
             elif degrees == 0.0:
+                time.sleep(5.0)
                 isClosing = 1
 
-            time.sleep(0.5)
+            time.sleep(0.1)
             servo_pub.publish(degrees)
 
     except rospy.ROSInterruptException:
