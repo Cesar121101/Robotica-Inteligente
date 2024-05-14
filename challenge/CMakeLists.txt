@@ -170,6 +170,7 @@ include_directories(
    scripts/controller.py
    scripts/kalman_filter.py
    scripts/servo.py
+   scripts/ros-server.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
  )
 
