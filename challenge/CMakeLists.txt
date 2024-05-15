@@ -12,7 +12,6 @@ find_package(catkin REQUIRED COMPONENTS
   nav_msgs
   rospy
   sensor_msgs
-  sensor_msgs
   std_msgs
   tf_conversions
   tf2_ros
@@ -171,6 +170,7 @@ include_directories(
    scripts/kalman_filter.py
    scripts/servo.py
    scripts/ros-server.py
+   scripts/camera_info.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
  )
 

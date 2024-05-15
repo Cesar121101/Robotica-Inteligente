@@ -6,7 +6,7 @@ import (
     "log"
 
     "google.golang.org/grpc"
-    pb "challenge/scripts/protos" // Importa el paquete generado por el compilador protobuf
+    pb "protos" // Importa el paquete generado por el compilador protobuf
 )
 
 func main() {
