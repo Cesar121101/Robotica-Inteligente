@@ -4,6 +4,7 @@ import numpy as np
 import rospy
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
+from geometry_msgs.msg import Twist, Pose
 
 # Definir la matriz de la camara
 camera_matrix = np.array([[1260.917444, 0.0, 669.999610], [0.0, 1178.106849, 407.540139], [0.0, 0.0, 1.0]])
@@ -17,8 +18,11 @@ parameters = cv2.aruco.DetectorParameters_create()
 
 image = Image()
 
+pose = Pose()
+id = -1
+
 def camera_callback(msg): 
-    global image
+    global image, id
     bridge = CvBridge()
     image = bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
 
@@ -42,6 +46,10 @@ def camera_callback(msg):
 
         # Mostrar la posicion de cada marcador ArUco
         for i in range(len(ids)):
+            id = ids[i][i]
+            pose.position.x = tvecs[i][i][0]
+            pose.position.y = tvecs[i][i][1]
+            pose.position.z = tvecs[i][i][2]
             print("ID:", ids[i][i])
             print("Position:", tvecs[i][i])
 
@@ -57,8 +65,17 @@ if __name__=='__main__':
     # Configure the Node
     loop_rate = rospy.Rate(rospy.get_param("~node_rate",100))
 
+    # Setup suscribers
     rospy.Subscriber("video_source/raw", Image, camera_callback)
 
+    #Setup publishers
+    id_pub = rospy.Publisher("aruco_id", int, queue_size=10)
+    pose_pub = rospy.Publisher("aruco_pose", Pose, queue_size=10)
+
     while not rospy.is_shutdown():
+
+        id_pub.publish(id)
+        pose_pub.publish(pose)
+
         cv2.destroyAllWindows()
         rospy.spin()
