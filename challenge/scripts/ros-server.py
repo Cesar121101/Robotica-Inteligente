@@ -51,8 +51,8 @@ if __name__ == '__main__':
     rate = rospy.Rate(100)
 
     # Subscribers
-    wl_sub = rospy.Subscriber("/object_detection", Float32, callback_wl)
-    wr_sub = rospy.Subscriber("/object_detection", Float32, callback_wr)
+    wl_sub = rospy.Subscriber("/wl", Float32, callback_wl)
+    wr_sub = rospy.Subscriber("/wr", Float32, callback_wr)
 
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     robot_pb2_grpc.add_RobotServiceServicer_to_server(RobotService(), server)

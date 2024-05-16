@@ -171,6 +171,7 @@ include_directories(
    scripts/servo.py
    scripts/ros-server.py
    scripts/camera_info.py
+   scripts/arucos.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
  )
 
