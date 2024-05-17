@@ -1,71 +1,133 @@
+#!/usr/bin/env python
 import rospy
 from std_msgs.msg import Float32
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist, Pose
+from std_msgs.msg import Float64MultiArray
 import time
+import numpy as np
+from tf.transformations import euler_from_quaternion # imported in controlley.py
 
+# Global Variables
 robot_odom = Odometry()
 aurco_pose = Pose()
+aruco_id = 0
 robot_state = 1
+robot_position = 0.0
+robot_orientation = 0.0
+points_msg = Float64MultiArray()
 
 def callback_robot_odom(msg):
-    global robot_odom
-    robot_odom = msg.data
+    global poseRobot
+    poseRobot = msg.pose.pose
+
+def callback_robot_position(msg):
+    global robot_position_msg
+    robot_position_msg = msg.data
+
+def callback_robot_orientation(msg):
+    global robot_orientation_msg
+    robot_orientation_msg = msg.data
+
+def callback_aruco_id(msg):
+    global aruco_id
+    aruco_id = msg.data
 
 def callback_aruco_pose(msg):
     global aruco_pose
     aruco_pose = msg.data
 
 if __name__=='__main__':
-    #Initialize and Setup node
+    #* Initialize and Setup node
     rospy.init_node("master")
     print("MASTER: Global Staetes of Puzzlebot")
 
-    # Configure the Node
+    #* Configure the Node
     loop_rate = rospy.Rate(rospy.get_param("~node_rate",100))
 
-    # Subscribers
-    odom_sub = rospy.Subscriber("/odom", Float32, callback_robot_odom)
-    pose_sub = rospy.Subscriber("/aruco_pose", Pose, callback_aruco_pose)
+    #* Subscribers
+    rospy.Subscriber("/odom", Float32, callback_robot_odom)                         #? If we use Odometry topic
+    rospy.Subscriber("/controller/orientReal", Float32, callback_robot_orientation) #? use controller published odometry
+    rospy.Subscriber("/aruco_id", int, callback_aruco_id)
+    rospy.Subscriber("/aruco_pose", Pose, callback_aruco_pose)
     
-    #Publishers
-
+    #* Publishers
+    points_pub = rospy.Publisher("/points", Float64MultiArray, queue_size=10)
+    robot_state_pub = rospy.Publisher("/state", int, queue_size=10)
     # ROBOT STATES
-        # 0 = avoid ostacle
-        # 1 = search of aruco
-        # 2 = go to aruco
-        # 3 = grab box
-    # global robot_state
+    # 0 = avoid ostacle
+    # 1 = search for aruco
+    # 2 = turn puzzlebot to search for aruco
+    # 3 = go to aruco
+    # 4 = grab box
+    # 5 = got to unloading spot
+
+    # Initialize local variables
+    points_data = []
 
     try:
         while not rospy.is_shutdown():
-            #TODO: 0. Is there obstacle - LiDAR sensor
+
+            # #? If we use Odometry topic
+            robot_position = poseRobot
+            (x, y, robot_orientation) = euler_from_quaternion([poseRobot.orientation.x, poseRobot.orientation.y, poseRobot.orientation.z, poseRobot.orientation.w])
+
+            #? Use controller published odometry
+            robot_orientation = robot_orientation_msg
+            
+            # TODO: 0. Is there obstacle - LiDAR sensor
+            # * Controller does this automatically
             # if(lidar_sensor):
             #     turn_to_avoid_obstacle()
             # else:
 
             #     ROBOT STATES
-            #TODO: 1. Search for aruco
-            # if(robot_state == 1):
-            #     run camera and aruco to see if it finds aruco
-            #     if(aruco_found)
-            #         robot_state = 2
-            #         else:
-            #             calculate to turn robot right 
-            #             publish the angle of points
-            #             run aruco finder
-
-            # elif(robot_state == 2):
-            #    go_to_aruco()
-
-
+            # TODO: 1. Search for aruco
+            if(robot_state == 1):
+                aruco_position = aruco_pose
+                if(len(aruco_position) > 0):        # check if an aruco was detected
+                    #* Change state
+                    robot_state = 2                 # when aruco was detected
+                else:                               # when aruco was not found
+                    # Holiiiiiiiiiiiii
+                    robot_orientation = robot_orientation + (np.pi)/4                                               # turns 45 deg
+                    robot_point_data = [robot_position.position.x, robot_position.position.y, robot_orientation]    # point to turn robot to the right
+                    robot_point_data = [float(robot_point_data[j]) for j in range(len(robot_point_data))]           # make sure all data is float
+                    points_msg.data = robot_point_data                                                              # sets it to just one point,  rewrites the array
+                    points_pub.Publish(points_msg)
+                    
             #TODO: 2. go_to_aruco
+            elif(robot_state == 2):
+                aruco_point_data = [aruco_position.position.x, aruco_position.position.y, aruco_position.position.z]        # calculate to turn robot right
+                aruco_point_data = [float(aruco_point_data[j]) for j in range(len(aruco_point_data))]                       # make sure all data is float
+                points_msg.data = aruco_point_data                                                                          # sets it to just one point,  rewrites the array
+                points_pub.Publish(points_msg)
+                rospy.sleep(500)                                                                                            #! Wait to make sure ROS controller gets aruco
+                #! Change controller.py to set robot_state to grab aruco
+                #! controller.py must sucbscribe to robot_state and publish in robot state
 
             #TODO: 3. grab_aruco
+            elif(robot_state == 3):
+                robot_state = 4
 
-            #TODO: 5. get away form aruco's base
+            #TODO: 4. get away form aruco's base
+            elif(robot_state == 4):
+                robot_state = 5
 
-            #TODO: 7. move towards goal
+            #TODO: 5. move towards goal
+            elif(robot_state == 4):
+                robot_state = 5
+            
+            #TODO: broken state, turn off states
+            else:
+                print("Error in state logic... setting point topics to 0 or empty")
+                robot_state = 0
+                point_data = []
+                points_msg.data = point_data
+                points_pub.Publish(points_msg)
+
+               
+            robot_state_pub.publish(robot_state)
 
             rospy.spin()
 
