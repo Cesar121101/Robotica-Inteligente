@@ -169,6 +169,7 @@ include_directories(
    scripts/controller.py
    scripts/kalman_filter.py
    scripts/servo.py
+   scripts/bug0.py
    scripts/ros-server.py
    scripts/camera_info.py
    scripts/arucos.py
