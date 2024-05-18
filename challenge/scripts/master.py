@@ -11,7 +11,7 @@ from tf.transformations import euler_from_quaternion # imported in controlley.py
 # Global Variables
 robot_odom = Odometry()
 aurco_pose = Pose()
-aruco_id = 0
+aruco_id = -1
 robot_state = 1
 robot_position = 0.0
 robot_orientation = 0.0
@@ -101,6 +101,7 @@ if __name__=='__main__':
                     if(len(aruco_position) > 0):        # check if an aruco was detected
                         #* Change state
                         robot_state = 2                 # when aruco was detected
+                        points_pub.Publish([[]])
                     else:
                         print("No ARUCO detected.")
                 else:                               # when aruco was not found
