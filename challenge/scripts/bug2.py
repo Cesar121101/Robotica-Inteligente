@@ -27,7 +27,7 @@ prevTime = 0.0
 arm_status = 0
 prevAngle = 0.0
 points_bug2 = []
-first_bug2 = False
+first_bug2 = True
 bug2_num_points = 10
 
 def get_arm_status(msg):
@@ -214,7 +214,7 @@ def bug2_in_track(robot_position, points):
         point_y = x[1] #Y
 
         dist_point_robot = np.sqrt((np.power((point_x - robot_x), 2) + np.power((point_y - robot_y), 2)))
-        if dist_point_robot < 0.1:
+        if dist_point_robot < 0.3:
             return True
         
     return False
@@ -448,16 +448,16 @@ if __name__ == '__main__':
         elif current_state == 7:
             print("BUG2")
             if first_bug2:
-                delta_dist_bug2 = dist_goal/bug2_num_points
+                delta_dist_bug2 = dist_error/bug2_num_points
                 points_bug2 = []
                 # Populate points
                 for x in range (1, bug2_num_points+1):
                     point_bug2 = [0.0, 0.0]
-                    point_bug2[0] = delta_dist_bug2*x*np.cos(robot_orientation)
-                    point_bug2[1] = delta_dist_bug2*x*np.sin(robot_orientation)
+                    point_bug2[0] = delta_dist_bug2*x*np.cos(robot_orientation)+robot_position.position.x+0.3*np.cos(robot_orientation)
+                    point_bug2[1] = delta_dist_bug2*x*np.sin(robot_orientation)+robot_position.position.y+0.3*np.sin(robot_orientation)
                     points_bug2.append(point_bug2)
                 first_bug2 = False
-
+            print(points_bug2)
             angle_indp_bug = get_angle_robot_and_point(robot_orientation, robot_position, points_poses, current_point)
             #print("Angle IND:", angle_indp_bug)
             angle_dir = int(abs(round(180+angle_indp_bug*(180/np.pi))))
@@ -473,26 +473,32 @@ if __name__ == '__main__':
                 superError2 = 0.0
                 prevAngle = robot_orientation
                 new_robot_orientation = robot_orientation
-                first_bug2 = True
+                #first_bug2 = True
             else:
-                if check_dir(lsr_dists, 0.3, 150, 211):
+                if check_dir(lsr_dists, 0.3, 145, 226):
                     command.linear.x = 0.0
                     command.angular.z = 0.5
                     print("Left")
 
-                elif not(check_dir(lsr_dists, 0.8, 120, 141)):
-                    command.linear.x = 0.0
+                elif not(check_dir(lsr_dists, 0.8, 110, 131)):
+                    command.linear.x = 0.075
                     command.angular.z = -0.5
                     print("right")
 
-                elif check_dir(lsr_dists, 0.2, 120, 141):
+                elif check_dir(lsr_dists, 0.32, 110, 131):
+                    command.linear.x = 1.0
+                    command.angular.z = 0.0
+                    print("right")
+                    
+
+                elif check_dir(lsr_dists, 0.2, 110, 131):
                     command.linear.x = 0.01
                     command.angular.z = 0.3
                     print("left emergency")
 
                 else:
-                    command.linear.x = 1.0
-                    command.angular.z = 0.0
+                    command.linear.x = 0.0
+                    command.angular.z = -0.5
                     print("forward")
                     
 

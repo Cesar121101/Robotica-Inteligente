@@ -450,24 +450,30 @@ if __name__ == '__main__':
                 prevAngle = robot_orientation
                 new_robot_orientation = robot_orientation
             else:
-                if check_dir(lsr_dists, 0.3, 150, 211):
+                if check_dir(lsr_dists, 0.3, 145, 226):
                     command.linear.x = 0.0
                     command.angular.z = 0.5
                     print("Left")
 
-                elif not(check_dir(lsr_dists, 0.8, 90, 121)):
-                    command.linear.x = 0.0
+                elif not(check_dir(lsr_dists, 0.8, 110, 131)):
+                    command.linear.x = 0.075
                     command.angular.z = -0.5
                     print("right")
 
-                elif check_dir(lsr_dists, 0.2, 90, 121):
+                elif check_dir(lsr_dists, 0.32, 110, 131):
+                    command.linear.x = 1.0
+                    command.angular.z = 0.0
+                    print("right")
+                    
+
+                elif check_dir(lsr_dists, 0.2, 110, 131):
                     command.linear.x = 0.01
                     command.angular.z = 0.3
                     print("left emergency")
 
                 else:
-                    command.linear.x = 1.0
-                    command.angular.z = 0.0
+                    command.linear.x = 0.0
+                    command.angular.z = -0.5
                     print("forward")
                     
 
