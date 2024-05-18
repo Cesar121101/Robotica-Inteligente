@@ -16,6 +16,5 @@
         <node name="contoller" pkg="challenge" type="controller.py"/>
         <node name="joint_state_pub" pkg="challenge" type="joint_state_pub.py"/>
         <node name="challenge" pkg="challenge" type="localisation.py"/>
-        <node name="kalman" pkg="challenge" type="kalman_filter.py"/>
 
 </launch>
