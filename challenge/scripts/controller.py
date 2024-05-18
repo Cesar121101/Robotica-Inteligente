@@ -12,13 +12,12 @@ command = Twist()
 setpoint = Twist()
 poseRobot = Pose()
 # points = rospy.get_param("/points")
-points = [[]]
+points = Float64MultiArray() # [[0.0, 0.0, "N"], [0.0, 0.0, "N"]]
 linear_vel_max = rospy.get_param("/linear_vel_max")
 angular_vel_max = rospy.get_param("/angular_vel_max")
 linear_vel_min = rospy.get_param("/linear_vel_min")
 angular_vel_min = rospy.get_param("/angular_vel_min")
 points_poses = []
-print(points)
 superError1 = 0.0
 superError2 = 0.0
 currentTime = 0.0
@@ -31,10 +30,10 @@ def get_arm_status(msg):
     arm_status = msg.data
 
 def generate_poses():
-    global points
+    global points_poses
     pointsPoses = []
 
-    for x in points:
+    for x in points_poses:
         poseA = Pose()
         poseA.position.x = x[0]
         poseA.position.y = x[1]
@@ -236,9 +235,15 @@ if __name__ == '__main__':
     angle_error = 0.0
     dist_real = 0.0
 
+    instruction = [[0.0, 0.0, "N"], [0.0, 1.0,"N"], [1.0, 1.0, "N"], [1.0, 0.0, "N"], [0.0, 0.0, "N"]]
+    points.data = instruction
+
     while not rospy.is_shutdown():
-        
-        if len(points) > 0:
+
+        if len(points.data) > 0:
+            points_poses = points.data
+            # points_poses = [i for i in points_poses]
+            # print(points_poses) #* IS A TUPLE, NOT LIST
             points_poses = generate_poses()
             robot_position = poseRobot
             (x, y, robot_orientation) = euler_from_quaternion([poseRobot.orientation.x, poseRobot.orientation.y, poseRobot.orientation.z, poseRobot.orientation.w])
