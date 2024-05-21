@@ -56,9 +56,15 @@ def camera_callback(msg):
                 print("ID:", ids[i][i])
                 print("Position:", tvecs[i][i])
 
-                id_pub.publish(id)
-                pose_pub.publish(pose)
-                state_flag_pub.publish(True)
+                # id_pub.publish(id)
+                # pose_pub.publish(pose)
+                # state_flag_pub.publish(True)
+            id_pub.publish(id)
+            pose_pub.publish(pose)
+            state_flag_pub.publish(True)    # ARUCO was found
+            print("-------POSITION OF THE ARUCO---------")
+            print(pose)
+
 
         # Mostrar la imagen con los marcadores detectados y los ejes de coordenadas
         # cv2.imwrite("image.jpg", image)

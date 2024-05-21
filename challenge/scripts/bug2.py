@@ -2,7 +2,7 @@
 import rospy
 import tf_conversions
 from geometry_msgs.msg import Twist, Pose
-from std_msgs.msg import Int16, Float32
+from std_msgs.msg import Int16, Float32, Float64MultiArray
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 import numpy as np
 from nav_msgs.msg import Odometry
@@ -14,6 +14,8 @@ command = Twist()
 setpoint = Twist()
 poseRobot = Pose()
 points = [[0.0, 0.0, "N"], [2.5, 0.0,"N"]]
+points_msg = Float64MultiArray()
+robot_state_msg = 0
 linear_vel_max = 0.3
 angular_vel_max = 3.0
 linear_vel_min = 0.05
@@ -133,6 +135,14 @@ def callback_lsr(msg):
 def callback_odom(msg):
     global poseRobot
     poseRobot = msg.pose.pose
+
+def callback_points(msg):
+    global points_msg
+    points_msg = msg.data
+
+def callback_robot_state(msg):
+    global robot_state_msg
+    robot_state_msg = msg.data
     
 def PID_Position(error):
     global currentTime
@@ -265,10 +275,13 @@ if __name__ == '__main__':
     orientation_goal_pub = rospy.Publisher("/controller/orientGoal", Float32, queue_size=10)
     orientation_real_pub = rospy.Publisher("/controller/orientReal", Float32, queue_size=10)
     setpoint_pub = rospy.Publisher("/controller/setpoint", Twist, queue_size=10)
+    robot_state_flag_pub = rospy.Publisher("/state_flag", bool, queue_size=10)
+    rospy.init_node("controller")
 
     rospy.Subscriber("/odom", Odometry, callback_odom)
     rospy.Subscriber("/scan", LaserScan, callback_lsr)
-    rospy.init_node("controller")
+    rospy.Subscriber("/points", Float64MultiArray, callback_points)
+    rospy.Subscriber("/state", int, callback_robot_state)
     rate = rospy.Rate(100)
 
     init_command()
@@ -288,249 +301,255 @@ if __name__ == '__main__':
     dist_real = 0.0
 
     while not rospy.is_shutdown():
-        print("LEN:", len(lsr_dists))
-        
-        robot_position = poseRobot
-        (x, y, robot_orientation) = euler_from_quaternion([poseRobot.orientation.x, poseRobot.orientation.y, poseRobot.orientation.z, poseRobot.orientation.w])
-        robot_orientation = wrap_to_system(robot_orientation, prevAngle)
-
-        currentTime = rospy.get_time()
-        print("Current Point: ", current_point)
-
-        # publish errors and goals to see graphs
-        position_error_pub.publish(dist_error)
-        position_goal_pub.publish(dist_goal)
-        position_real_pub.publish(dist_real)
-        orientation_error_pub.publish(angle_error)
-        orientation_goal_pub.publish(angle_goal)
-        orientation_real_pub.publish(robot_orientation)
-        #setpoint_pub.publish(setpoint)
-        setpoint.angular.z = angle_goal*180/np.pi    
-
-        if current_state == 0:
-            print("NEXT POINT")
-            print(points)
-            print(current_point)
-            if current_state >= len(points_poses):
-                print("DONE")
-            else:
-                current_point += 1
-                current_state = 1
-                superError1 = 0.0
-                superError2 = 0.0
-                setpoint.linear.x = points_poses[current_point].position.x
-                setpoint.linear.y = points_poses[current_point].position.y
-                setpoint.linear.z = 0.0
-                setpoint.angular.x = 0.0
-                setpoint.angular.y = 0.0
-                #setpoint.angular.z = angle_goal*180/np.pi
-            prevAngle = robot_orientation
-            new_robot_orientation = robot_orientation
-        
-        elif current_state == 1:
-            print("GETTING ANGLE")
-
-            angle_indp = get_angle_robot_and_point(robot_orientation, robot_position, points_poses, current_point)
-            angle_goal = new_robot_orientation + angle_indp  
-
-            current_state = 2
-
-        elif current_state == 2:
-            print("SETTING ANGLE")
-            angle_error = angle_goal - robot_orientation
-            angular_vel = PID_Orientation(angle_error)
-
-            if np.abs(angular_vel) > angular_vel_max:
-                if angular_vel > 0:
-                    angular_vel = angular_vel_max
-                else:
-                    angular_vel = -1.0*angular_vel_max
-
-            if np.abs(angular_vel) < angular_vel_min:
-                if angular_vel > 0:
-                    angular_vel = angular_vel_min
-                else:
-                    angular_vel = -1.0*angular_vel_min
-
-            print("robot angle: ", robot_orientation)
-            print("angle Goal: ", angle_goal)
-            print("angle Error: ", angle_error)
-            print("angular vel: ", angular_vel)
-
-            rospy.loginfo("robot angle: %f", robot_orientation)
-            rospy.loginfo("angle Goal: %f", angle_goal)
-            rospy.loginfo("angle Error: %f", angle_error)
-            rospy.loginfo("angular vel: %f", angular_vel)
-
-            if np.abs(angle_error) < 0.05:
-                print("DONE")
-                current_state = 3
-                command.linear.x = 0.0
-                command.angular.z = 0.0
-                prev_position = robot_position
-            else:
-
-                command.linear.x = 0.0
-                command.angular.z = angular_vel
-
-        elif current_state == 3:
-            print("GETTING DISTANCE")
-            dist_goal = dist_poses(robot_position, points_poses[current_point])
-            current_state = 4
-
-        elif current_state == 4:
-            print("MOVING")
-            points_bug2 = delete_path(points_bug2,robot_position)
-
-            # print("LSR: ", lsr_dists[180])
-            if check_dir(lsr_dists, 0.4, 0, 30) or check_dir(lsr_dists, 0.4, 330, 360):
-                current_state = 7
-            else:
-
-                dist_real = dist_poses(robot_position, prev_position)
-
-                dist_error = dist_goal - dist_real
-                linear_vel = PID_Position(dist_error)*0.5
-
-                if np.abs(linear_vel) > linear_vel_max:
-                    if linear_vel > 0:
-                        linear_vel = linear_vel_max
-                    else:
-                        linear_vel = -1.0* linear_vel_max
-
-                if np.abs(linear_vel) < linear_vel_min:
-                    if linear_vel > 0:
-                        linear_vel = linear_vel_min
-                    else:
-                        linear_vel = -1.0* linear_vel_min
-
-                print("robot dist: ", dist_real)
-                print("dist Goal: ", dist_goal)
-                print("dist Error: ", dist_error)
-                print("linear vel: ", linear_vel)
-
-                if np.abs(dist_error) < 0.002:
-                    print("DONE")
-                    if points_poses[current_point].orientation.z == "N":
-                        current_state = 0
-                    else:
-                        current_state = 5
-                        superError2 = 0.0
-                        new_robot_orientation = robot_orientation
-
-                    command.linear.x = 0.0
-                    command.angular.z = 0.0
-                else:
-                    command.linear.x = linear_vel
-                    command.angular.z = 0.0
-
-        elif current_state == 5:
-            print("ADJUSTING GETTING ANGLE")
-
-            angle_indp_adj = get_angle_robot_and_orientation(robot_orientation, points_poses, current_point)
-            angle_goal_adj = new_robot_orientation + angle_indp_adj
-
-            current_state = 6
-
-        elif current_state == 6:
-            print("ADJUSTING SETTING ANGLE")
-            angle_error_adj = angle_goal_adj - robot_orientation
-            angular_vel_adj = PID_Orientation(angle_error_adj)
-
-            if np.abs(angular_vel_adj) > angular_vel_max:
-                if angular_vel_adj > 0:
-                    angular_vel_adj = angular_vel_max
-                else:
-                    angular_vel_adj = -1.0*angular_vel_max
-
-            if np.abs(angular_vel_adj) < angular_vel_min:
-                if angular_vel_adj > 0:
-                    angular_vel_adj = angular_vel_min
-                else:
-                    angular_vel_adj = -1.0*angular_vel_min
-
-            print("robot angle: ", robot_orientation)
-            print("angle Goal: ", angle_goal_adj)
-            print("angle Error: ", angle_error_adj)
-            print("angular vel: ", angular_vel_adj)
-
-            if np.abs(angle_error_adj) < 0.0018:
-                print("DONE")
-                current_state = 0
-                command.linear.x = 0.0
-                command.angular.z = 0.0
-                prev_position = robot_position
-            else:
-
-                command.linear.x = 0.0
-                command.angular.z = angular_vel_adj
-
-        elif current_state == 7:
-            print("BUG2")
-            if first_bug2:
-                delta_dist_bug2 = dist_error/bug2_num_points
-                points_bug2 = []
-                # Populate points
-                for x in range (1, bug2_num_points+1):
-                    point_bug2 = [0.0, 0.0]
-                    point_bug2[0] = delta_dist_bug2*x*np.cos(robot_orientation)+robot_position.position.x+0.4*np.cos(robot_orientation)
-                    point_bug2[1] = delta_dist_bug2*x*np.sin(robot_orientation)+robot_position.position.y+0.4*np.sin(robot_orientation)
-                    points_bug2.append(point_bug2)
-                first_bug2 = False
-            print(points_bug2)
-            angle_indp_bug = get_angle_robot_and_point(robot_orientation, robot_position, points_poses, current_point)
-            #print("Angle IND:", angle_indp_bug)
-            angle_dir = int(abs(round((angle_indp_bug*(180/np.pi))/0.314)))
-            if angle_dir == 360:
-                angle_dir = 0
-            print("Angle:",angle_dir)
-            print("Mes:",lsr_dists[angle_dir])
+        points = points_msg
+        if(points > 0):
+            print("LEN:", len(lsr_dists))
             
-            if bug2_in_track(robot_position,points_bug2): #or check_around(lsr_dists):
-                # Same code as state 0
-                current_state = 1
-                superError1 = 0.0
-                superError2 = 0.0
+            robot_position = poseRobot
+            (x, y, robot_orientation) = euler_from_quaternion([poseRobot.orientation.x, poseRobot.orientation.y, poseRobot.orientation.z, poseRobot.orientation.w])
+            robot_orientation = wrap_to_system(robot_orientation, prevAngle)
+
+            currentTime = rospy.get_time()
+            print("Current Point: ", current_point)
+
+            # publish errors and goals to see graphs
+            position_error_pub.publish(dist_error)
+            position_goal_pub.publish(dist_goal)
+            position_real_pub.publish(dist_real)
+            orientation_error_pub.publish(angle_error)
+            orientation_goal_pub.publish(angle_goal)
+            orientation_real_pub.publish(robot_orientation)
+            #setpoint_pub.publish(setpoint)
+            setpoint.angular.z = angle_goal*180/np.pi    
+
+            if current_state == 0:
+                print("NEXT POINT")
+                print(points)
+                print(current_point)
+                if current_state >= len(points_poses):
+                    print("DONE")
+                else:
+                    current_point += 1
+                    current_state = 1
+                    superError1 = 0.0
+                    superError2 = 0.0
+                    setpoint.linear.x = points_poses[current_point].position.x
+                    setpoint.linear.y = points_poses[current_point].position.y
+                    setpoint.linear.z = 0.0
+                    setpoint.angular.x = 0.0
+                    setpoint.angular.y = 0.0
+                    #setpoint.angular.z = angle_goal*180/np.pi
                 prevAngle = robot_orientation
                 new_robot_orientation = robot_orientation
-                #first_bug2 = True
-            else:
-                if check_dir(lsr_dists, 0.4, 0, 36) or check_dir(lsr_dists, 0.4, 325, 360):
+            
+            elif current_state == 1:
+                print("GETTING ANGLE")
+
+                angle_indp = get_angle_robot_and_point(robot_orientation, robot_position, points_poses, current_point)
+                angle_goal = new_robot_orientation + angle_indp  
+
+                current_state = 2
+
+            elif current_state == 2:
+                print("SETTING ANGLE")
+                angle_error = angle_goal - robot_orientation
+                angular_vel = PID_Orientation(angle_error)
+
+                if np.abs(angular_vel) > angular_vel_max:
+                    if angular_vel > 0:
+                        angular_vel = angular_vel_max
+                    else:
+                        angular_vel = -1.0*angular_vel_max
+
+                if np.abs(angular_vel) < angular_vel_min:
+                    if angular_vel > 0:
+                        angular_vel = angular_vel_min
+                    else:
+                        angular_vel = -1.0*angular_vel_min
+
+                print("robot angle: ", robot_orientation)
+                print("angle Goal: ", angle_goal)
+                print("angle Error: ", angle_error)
+                print("angular vel: ", angular_vel)
+
+                rospy.loginfo("robot angle: %f", robot_orientation)
+                rospy.loginfo("angle Goal: %f", angle_goal)
+                rospy.loginfo("angle Error: %f", angle_error)
+                rospy.loginfo("angular vel: %f", angular_vel)
+
+                if np.abs(angle_error) < 0.05:
+                    print("DONE")
+                    current_state = 3
                     command.linear.x = 0.0
-                    command.angular.z = 0.75
-                    print("Left")
-
-                elif check_dir(lsr_dists, 0.5, 36, 66):
-                    command.linear.x = 0.3
-                    command.angular.z = -0.3
-                    print("AAAA")
-
-                elif not(check_dir(lsr_dists, 0.9, 65, 76)):
-                    command.linear.x = 0.3
-                    command.angular.z = -0.35
-                    print("right")
-
-                elif check_dir(lsr_dists, 0.35, 65, 76):
-                    command.linear.x = 0.4
                     command.angular.z = 0.0
-                    print("forward")
-                    
-
-                elif check_dir(lsr_dists, 0.3, 65, 76):
-                    command.linear.x = 0.2
-                    command.angular.z = 0.5
-                    print("right emerengcy")
-
+                    prev_position = robot_position
                 else:
-                    command.linear.x = 0.18
-                    command.angular.z = -0.75
-                    print("right final")
-                    
 
-        prevTime = currentTime
-        prevAngle = robot_orientation
+                    command.linear.x = 0.0
+                    command.angular.z = angular_vel
 
-        pub.publish(command)
-        setpoint_pub.publish(setpoint)
+            elif current_state == 3:
+                print("GETTING DISTANCE")
+                dist_goal = dist_poses(robot_position, points_poses[current_point])
+                current_state = 4
 
+            elif current_state == 4:
+                print("MOVING")
+                points_bug2 = delete_path(points_bug2,robot_position)
+
+                # print("LSR: ", lsr_dists[180])
+                if check_dir(lsr_dists, 0.4, 0, 30) or check_dir(lsr_dists, 0.4, 330, 360):
+                    current_state = 7
+                else:
+
+                    dist_real = dist_poses(robot_position, prev_position)
+
+                    dist_error = dist_goal - dist_real
+                    linear_vel = PID_Position(dist_error)*0.5
+
+                    if np.abs(linear_vel) > linear_vel_max:
+                        if linear_vel > 0:
+                            linear_vel = linear_vel_max
+                        else:
+                            linear_vel = -1.0* linear_vel_max
+
+                    if np.abs(linear_vel) < linear_vel_min:
+                        if linear_vel > 0:
+                            linear_vel = linear_vel_min
+                        else:
+                            linear_vel = -1.0* linear_vel_min
+
+                    print("robot dist: ", dist_real)
+                    print("dist Goal: ", dist_goal)
+                    print("dist Error: ", dist_error)
+                    print("linear vel: ", linear_vel)
+
+                    if np.abs(dist_error) < 0.002:
+                        print("DONE")
+                        if points_poses[current_point].orientation.z == "N":
+                            current_state = 0
+                        else:
+                            current_state = 5
+                            superError2 = 0.0
+                            new_robot_orientation = robot_orientation
+
+                        command.linear.x = 0.0
+                        command.angular.z = 0.0
+                    else:
+                        command.linear.x = linear_vel
+                        command.angular.z = 0.0
+
+            elif current_state == 5:
+                print("ADJUSTING GETTING ANGLE")
+
+                angle_indp_adj = get_angle_robot_and_orientation(robot_orientation, points_poses, current_point)
+                angle_goal_adj = new_robot_orientation + angle_indp_adj
+
+                current_state = 6
+
+            elif current_state == 6:
+                print("ADJUSTING SETTING ANGLE")
+                angle_error_adj = angle_goal_adj - robot_orientation
+                angular_vel_adj = PID_Orientation(angle_error_adj)
+
+                if np.abs(angular_vel_adj) > angular_vel_max:
+                    if angular_vel_adj > 0:
+                        angular_vel_adj = angular_vel_max
+                    else:
+                        angular_vel_adj = -1.0*angular_vel_max
+
+                if np.abs(angular_vel_adj) < angular_vel_min:
+                    if angular_vel_adj > 0:
+                        angular_vel_adj = angular_vel_min
+                    else:
+                        angular_vel_adj = -1.0*angular_vel_min
+
+                print("robot angle: ", robot_orientation)
+                print("angle Goal: ", angle_goal_adj)
+                print("angle Error: ", angle_error_adj)
+                print("angular vel: ", angular_vel_adj)
+
+                if np.abs(angle_error_adj) < 0.0018:
+                    print("DONE")
+                    current_state = 0
+                    command.linear.x = 0.0
+                    command.angular.z = 0.0
+                    prev_position = robot_position
+                else:
+
+                    command.linear.x = 0.0
+                    command.angular.z = angular_vel_adj
+
+            elif current_state == 7:
+                print("BUG2")
+                if first_bug2:
+                    delta_dist_bug2 = dist_error/bug2_num_points
+                    points_bug2 = []
+                    # Populate points
+                    for x in range (1, bug2_num_points+1):
+                        point_bug2 = [0.0, 0.0]
+                        point_bug2[0] = delta_dist_bug2*x*np.cos(robot_orientation)+robot_position.position.x+0.4*np.cos(robot_orientation)
+                        point_bug2[1] = delta_dist_bug2*x*np.sin(robot_orientation)+robot_position.position.y+0.4*np.sin(robot_orientation)
+                        points_bug2.append(point_bug2)
+                    first_bug2 = False
+                print(points_bug2)
+                angle_indp_bug = get_angle_robot_and_point(robot_orientation, robot_position, points_poses, current_point)
+                #print("Angle IND:", angle_indp_bug)
+                angle_dir = int(abs(round((angle_indp_bug*(180/np.pi))/0.314)))
+                if angle_dir == 360:
+                    angle_dir = 0
+                print("Angle:",angle_dir)
+                print("Mes:",lsr_dists[angle_dir])
+                
+                if bug2_in_track(robot_position,points_bug2): #or check_around(lsr_dists):
+                    # Same code as state 0
+                    current_state = 1
+                    superError1 = 0.0
+                    superError2 = 0.0
+                    prevAngle = robot_orientation
+                    new_robot_orientation = robot_orientation
+                    #first_bug2 = True
+                else:
+                    if check_dir(lsr_dists, 0.4, 0, 36) or check_dir(lsr_dists, 0.4, 325, 360):
+                        command.linear.x = 0.0
+                        command.angular.z = 0.75
+                        print("Left")
+
+                    elif check_dir(lsr_dists, 0.5, 36, 66):
+                        command.linear.x = 0.3
+                        command.angular.z = -0.3
+                        print("AAAA")
+
+                    elif not(check_dir(lsr_dists, 0.9, 65, 76)):
+                        command.linear.x = 0.3
+                        command.angular.z = -0.35
+                        print("right")
+
+                    elif check_dir(lsr_dists, 0.35, 65, 76):
+                        command.linear.x = 0.4
+                        command.angular.z = 0.0
+                        print("forward")
+                        
+
+                    elif check_dir(lsr_dists, 0.3, 65, 76):
+                        command.linear.x = 0.2
+                        command.angular.z = 0.5
+                        print("right emerengcy")
+
+                    else:
+                        command.linear.x = 0.18
+                        command.angular.z = -0.75
+                        print("right final")
+                        
+
+            prevTime = currentTime
+            prevAngle = robot_orientation
+
+            pub.publish(command)
+            setpoint_pub.publish(setpoint)
+        
+        else:
+            print("No points were found... perhaps it finished.")
+            robot_state_flag_pub.publish(True)
+        
         rate.sleep()
