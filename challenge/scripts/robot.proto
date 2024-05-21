@@ -1,14 +1,19 @@
 syntax = "proto3";
 
+package robot;
+
+service RobotService {
+  rpc ObtenerLlantas (Empty) returns (Llanta);
+  rpc ObtenerImagen (Empty) returns (Imagen);
+}
+
+message Empty {}
+
 message Llanta {
   float wl = 1;
   float wr = 2;
 }
 
-message Request {
-    string query = 1;
-}
-
-service RobotService {
-  rpc ObtenerLlantas (Request) returns (Llanta);
+message Imagen {
+  bytes data = 1;
 }

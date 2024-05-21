@@ -14,17 +14,19 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0brobot.proto\" \n\x06Llanta\x12\n\n\x02wl\x18\x01 \x01(\x02\x12\n\n\x02wr\x18\x02 \x01(\x02\"\x18\n\x07Request\x12\r\n\x05query\x18\x01 \x01(\t23\n\x0cRobotService\x12#\n\x0eObtenerLlantas\x12\x08.Request\x1a\x07.Llantab\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0brobot.proto\x12\x05robot\"\x07\n\x05\x45mpty\" \n\x06Llanta\x12\n\n\x02wl\x18\x01 \x01(\x02\x12\n\n\x02wr\x18\x02 \x01(\x02\"\x16\n\x06Imagen\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\x32k\n\x0cRobotService\x12-\n\x0eObtenerLlantas\x12\x0c.robot.Empty\x1a\r.robot.Llanta\x12,\n\rObtenerImagen\x12\x0c.robot.Empty\x1a\r.robot.Imagenb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'robot_pb2', _globals)
 if _descriptor._USE_C_DESCRIPTORS == False:
   DESCRIPTOR._options = None
-  _globals['_LLANTA']._serialized_start=15
-  _globals['_LLANTA']._serialized_end=47
-  _globals['_REQUEST']._serialized_start=49
-  _globals['_REQUEST']._serialized_end=73
-  _globals['_ROBOTSERVICE']._serialized_start=75
-  _globals['_ROBOTSERVICE']._serialized_end=126
+  _globals['_EMPTY']._serialized_start=22
+  _globals['_EMPTY']._serialized_end=29
+  _globals['_LLANTA']._serialized_start=31
+  _globals['_LLANTA']._serialized_end=63
+  _globals['_IMAGEN']._serialized_start=65
+  _globals['_IMAGEN']._serialized_end=87
+  _globals['_ROBOTSERVICE']._serialized_start=89
+  _globals['_ROBOTSERVICE']._serialized_end=196
 # @@protoc_insertion_point(module_scope)

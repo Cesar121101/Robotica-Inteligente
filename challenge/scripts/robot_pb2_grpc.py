@@ -15,9 +15,14 @@ class RobotServiceStub(object):
             channel: A grpc.Channel.
         """
         self.ObtenerLlantas = channel.unary_unary(
-                '/RobotService/ObtenerLlantas',
-                request_serializer=robot__pb2.Request.SerializeToString,
+                '/robot.RobotService/ObtenerLlantas',
+                request_serializer=robot__pb2.Empty.SerializeToString,
                 response_deserializer=robot__pb2.Llanta.FromString,
+                )
+        self.ObtenerImagen = channel.unary_unary(
+                '/robot.RobotService/ObtenerImagen',
+                request_serializer=robot__pb2.Empty.SerializeToString,
+                response_deserializer=robot__pb2.Imagen.FromString,
                 )
 
 
@@ -30,17 +35,28 @@ class RobotServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def ObtenerImagen(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_RobotServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'ObtenerLlantas': grpc.unary_unary_rpc_method_handler(
                     servicer.ObtenerLlantas,
-                    request_deserializer=robot__pb2.Request.FromString,
+                    request_deserializer=robot__pb2.Empty.FromString,
                     response_serializer=robot__pb2.Llanta.SerializeToString,
+            ),
+            'ObtenerImagen': grpc.unary_unary_rpc_method_handler(
+                    servicer.ObtenerImagen,
+                    request_deserializer=robot__pb2.Empty.FromString,
+                    response_serializer=robot__pb2.Imagen.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'RobotService', rpc_method_handlers)
+            'robot.RobotService', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
 
 
@@ -59,8 +75,25 @@ class RobotService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/RobotService/ObtenerLlantas',
-            robot__pb2.Request.SerializeToString,
+        return grpc.experimental.unary_unary(request, target, '/robot.RobotService/ObtenerLlantas',
+            robot__pb2.Empty.SerializeToString,
             robot__pb2.Llanta.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def ObtenerImagen(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/robot.RobotService/ObtenerImagen',
+            robot__pb2.Empty.SerializeToString,
+            robot__pb2.Imagen.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

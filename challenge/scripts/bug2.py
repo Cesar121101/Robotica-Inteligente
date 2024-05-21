@@ -13,8 +13,8 @@ lsr_dists = []
 command = Twist()
 setpoint = Twist()
 poseRobot = Pose()
-points = [[0.0, 0.0, "N"], [2.0, 0.0,"N"]]
-linear_vel_max = 1.0
+points = [[0.0, 0.0, "N"], [2.5, 0.0,"N"]]
+linear_vel_max = 0.3
 angular_vel_max = 3.0
 linear_vel_min = 0.05
 angular_vel_min = 0.1
@@ -197,7 +197,24 @@ def check_around(dists):
         
     return True
 
+def delete_path(points, robot_position):
+    new_list = []
+    for x in points:
+        # Dist to point
+        robot_x = robot_position.position.x
+        robot_y = robot_position.position.y
+
+        point_x = x[0] #X
+        point_y = x[1] #Y
+
+        dist_point_robot = np.sqrt((np.power((point_x - robot_x), 2) + np.power((point_y - robot_y), 2)))
+        if dist_point_robot > 0.15:
+            new_list.append(x)
+    return new_list
+
 def check_dir(dists, dist, rangei, rangej):
+    rangei = int(round(rangei/0.314))
+    rangej = int(round(rangej/0.314))
     for x in range(rangei,rangej):
         if dists[x] <= dist:
             return True
@@ -214,7 +231,7 @@ def bug2_in_track(robot_position, points):
         point_y = x[1] #Y
 
         dist_point_robot = np.sqrt((np.power((point_x - robot_x), 2) + np.power((point_y - robot_y), 2)))
-        if dist_point_robot < 0.3:
+        if dist_point_robot < 0.15:
             return True
         
     return False
@@ -238,7 +255,7 @@ def init_setpoint():
     setpoint.angular.z = 0.0
 
 if __name__ == '__main__':
-    pub = rospy.Publisher("/puzzlebot_1/base_controller/cmd_vel", Twist, queue_size=10)
+    pub = rospy.Publisher("/cmd_vel", Twist, queue_size=10)
 
     # For Debug
     position_error_pub = rospy.Publisher("/controller/posError", Float32, queue_size=10)
@@ -249,8 +266,8 @@ if __name__ == '__main__':
     orientation_real_pub = rospy.Publisher("/controller/orientReal", Float32, queue_size=10)
     setpoint_pub = rospy.Publisher("/controller/setpoint", Twist, queue_size=10)
 
-    rospy.Subscriber("/puzzlebot_1/base_controller/odom", Odometry, callback_odom)
-    rospy.Subscriber("/puzzlebot_1/scan", LaserScan, callback_lsr)
+    rospy.Subscriber("/odom", Odometry, callback_odom)
+    rospy.Subscriber("/scan", LaserScan, callback_lsr)
     rospy.init_node("controller")
     rate = rospy.Rate(100)
 
@@ -271,6 +288,7 @@ if __name__ == '__main__':
     dist_real = 0.0
 
     while not rospy.is_shutdown():
+        print("LEN:", len(lsr_dists))
         
         robot_position = poseRobot
         (x, y, robot_orientation) = euler_from_quaternion([poseRobot.orientation.x, poseRobot.orientation.y, poseRobot.orientation.z, poseRobot.orientation.w])
@@ -344,7 +362,7 @@ if __name__ == '__main__':
             rospy.loginfo("angle Error: %f", angle_error)
             rospy.loginfo("angular vel: %f", angular_vel)
 
-            if np.abs(angle_error) < 0.01:
+            if np.abs(angle_error) < 0.05:
                 print("DONE")
                 current_state = 3
                 command.linear.x = 0.0
@@ -362,8 +380,10 @@ if __name__ == '__main__':
 
         elif current_state == 4:
             print("MOVING")
-            print("LSR: ", lsr_dists[180])
-            if check_dir(lsr_dists, 0.3, 150, 211):
+            points_bug2 = delete_path(points_bug2,robot_position)
+
+            # print("LSR: ", lsr_dists[180])
+            if check_dir(lsr_dists, 0.4, 0, 30) or check_dir(lsr_dists, 0.4, 330, 360):
                 current_state = 7
             else:
 
@@ -453,20 +473,20 @@ if __name__ == '__main__':
                 # Populate points
                 for x in range (1, bug2_num_points+1):
                     point_bug2 = [0.0, 0.0]
-                    point_bug2[0] = delta_dist_bug2*x*np.cos(robot_orientation)+robot_position.position.x+0.3*np.cos(robot_orientation)
-                    point_bug2[1] = delta_dist_bug2*x*np.sin(robot_orientation)+robot_position.position.y+0.3*np.sin(robot_orientation)
+                    point_bug2[0] = delta_dist_bug2*x*np.cos(robot_orientation)+robot_position.position.x+0.4*np.cos(robot_orientation)
+                    point_bug2[1] = delta_dist_bug2*x*np.sin(robot_orientation)+robot_position.position.y+0.4*np.sin(robot_orientation)
                     points_bug2.append(point_bug2)
                 first_bug2 = False
             print(points_bug2)
             angle_indp_bug = get_angle_robot_and_point(robot_orientation, robot_position, points_poses, current_point)
             #print("Angle IND:", angle_indp_bug)
-            angle_dir = int(abs(round(180+angle_indp_bug*(180/np.pi))))
+            angle_dir = int(abs(round((angle_indp_bug*(180/np.pi))/0.314)))
             if angle_dir == 360:
                 angle_dir = 0
             print("Angle:",angle_dir)
             print("Mes:",lsr_dists[angle_dir])
             
-            if bug2_in_track(robot_position,points_bug2) or check_around(lsr_dists):
+            if bug2_in_track(robot_position,points_bug2): #or check_around(lsr_dists):
                 # Same code as state 0
                 current_state = 1
                 superError1 = 0.0
@@ -475,31 +495,36 @@ if __name__ == '__main__':
                 new_robot_orientation = robot_orientation
                 #first_bug2 = True
             else:
-                if check_dir(lsr_dists, 0.3, 145, 226):
+                if check_dir(lsr_dists, 0.4, 0, 36) or check_dir(lsr_dists, 0.4, 325, 360):
                     command.linear.x = 0.0
-                    command.angular.z = 0.5
+                    command.angular.z = 0.75
                     print("Left")
 
-                elif not(check_dir(lsr_dists, 0.8, 110, 131)):
-                    command.linear.x = 0.075
-                    command.angular.z = -0.5
+                elif check_dir(lsr_dists, 0.5, 36, 66):
+                    command.linear.x = 0.3
+                    command.angular.z = -0.3
+                    print("AAAA")
+
+                elif not(check_dir(lsr_dists, 0.9, 65, 76)):
+                    command.linear.x = 0.3
+                    command.angular.z = -0.35
                     print("right")
 
-                elif check_dir(lsr_dists, 0.32, 110, 131):
-                    command.linear.x = 1.0
+                elif check_dir(lsr_dists, 0.35, 65, 76):
+                    command.linear.x = 0.4
                     command.angular.z = 0.0
-                    print("right")
+                    print("forward")
                     
 
-                elif check_dir(lsr_dists, 0.2, 110, 131):
-                    command.linear.x = 0.01
-                    command.angular.z = 0.3
-                    print("left emergency")
+                elif check_dir(lsr_dists, 0.3, 65, 76):
+                    command.linear.x = 0.2
+                    command.angular.z = 0.5
+                    print("right emerengcy")
 
                 else:
-                    command.linear.x = 0.0
-                    command.angular.z = -0.5
-                    print("forward")
+                    command.linear.x = 0.18
+                    command.angular.z = -0.75
+                    print("right final")
                     
 
         prevTime = currentTime
