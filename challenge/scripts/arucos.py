@@ -5,6 +5,7 @@ import rospy
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Twist, Pose
+from std_msgs.msg import Int16
 
 # Definir la matriz de la camara
 camera_matrix = np.array([[1260.917444, 0.0, 669.999610], [0.0, 1178.106849, 407.540139], [0.0, 0.0, 1.0]])
@@ -26,7 +27,9 @@ def camera_callback(msg):
     global image, id
     bridge = CvBridge()
 
+    print("antes del if")
     if state == 1:
+        print("despues del if")
         image = bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
 
         # Convertir la imagen a escala de grises
@@ -61,7 +64,7 @@ def camera_callback(msg):
                 # state_flag_pub.publish(True)
             id_pub.publish(id)
             pose_pub.publish(pose)
-            state_flag_pub.publish(True)    # ARUCO was found
+            state_flag_pub.publish(1)    # ARUCO was found
             print("-------POSITION OF THE ARUCO---------")
             print(pose)
 
@@ -71,7 +74,7 @@ def camera_callback(msg):
         # cv2.imshow('ArUco Markers', image)
 
 def callback_state(msg):
-    global state_msg
+    global state
     state = msg.data
 
 if __name__=='__main__':
@@ -84,12 +87,12 @@ if __name__=='__main__':
 
     # Setup suscribers
     rospy.Subscriber("video_source/raw", Image, camera_callback)
-    rospy.Subscriber("/state", bool, callback_state)
+    rospy.Subscriber("/state", Int16, callback_state)
 
     #Setup publishers
-    id_pub = rospy.Publisher("aruco_id", int, queue_size=10)
+    id_pub = rospy.Publisher("aruco_id", Int16, queue_size=10)
     pose_pub = rospy.Publisher("aruco_pose", Pose, queue_size=10)
-    state_flag_pub = rospy.Publisher("/state_flag", bool, queue_size=10)
+    state_flag_pub = rospy.Publisher("/state_flag", Int16, queue_size=10)
 
     while not rospy.is_shutdown():
 
