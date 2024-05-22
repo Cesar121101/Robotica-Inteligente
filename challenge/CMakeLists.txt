@@ -174,6 +174,7 @@ include_directories(
    scripts/camera_info.py
    scripts/arucos.py
    scripts/bug2.py
+   scripts/save_image.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
  )
 

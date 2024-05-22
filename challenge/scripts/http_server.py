@@ -32,7 +32,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         # Connect to gRPC server and retrieve llantas info
         channel = grpc.insecure_channel('localhost:50051')
         stub = robot_pb2_grpc.RobotServiceStub(channel)
-        response = stub.ObtenerLlantas(robot_pb2.Request(query="example"))
+        response = stub.ObtenerLlantas(robot_pb2.Empty())
         return f'Llanta izquierda: {response.wl}, Llanta derecha: {response.wr}'
     
     def get_image_data(self):
