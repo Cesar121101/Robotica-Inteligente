@@ -275,13 +275,13 @@ if __name__ == '__main__':
     orientation_goal_pub = rospy.Publisher("/controller/orientGoal", Float32, queue_size=10)
     orientation_real_pub = rospy.Publisher("/controller/orientReal", Float32, queue_size=10)
     setpoint_pub = rospy.Publisher("/controller/setpoint", Twist, queue_size=10)
-    robot_state_flag_pub = rospy.Publisher("/state_flag", bool, queue_size=10)
+    robot_state_flag_pub = rospy.Publisher("/state_flag", Int16, queue_size=10)
     rospy.init_node("controller")
 
     rospy.Subscriber("/odom", Odometry, callback_odom)
     rospy.Subscriber("/scan", LaserScan, callback_lsr)
     rospy.Subscriber("/points", Float64MultiArray, callback_points)
-    rospy.Subscriber("/state", int, callback_robot_state)
+    rospy.Subscriber("/state", Int16, callback_robot_state)
     rate = rospy.Rate(100)
 
     init_command()

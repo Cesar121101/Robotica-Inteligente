@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 import rospy
-from std_msgs.msg import Float32
+from std_msgs.msg import Float32, Int16, Float64MultiArray
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist, Pose
-from std_msgs.msg import Float64MultiArray
 import time
 import numpy as np
 from tf.transformations import euler_from_quaternion # imported in controlley.py
@@ -39,11 +38,26 @@ def callback_aruco_id(msg):
 
 def callback_aruco_pose(msg):
     global aruco_pose
-    aruco_pose = msg.data
+    aruco_pose = msg.pose.pose
 
 def callback_state_flag(msg):
     global state_flag_msg
     state_flag_msg = msg.data
+
+def center_aruco_position(aruco_pose):
+    x1 = 140  # x-coordinate of the top-left corner of the ROI
+    x2 = 500  # Width of the ROI
+
+    #Center of the puzzlebot
+    puzzlebot_x = (x2-x1) /2
+
+    print("------------TEST FOR FINDING CENTER OF CAMERA AND CENTER OR ARUCO-----------------")
+    print("Center Image :" + str(puzzlebot_x))
+
+    print("x: ", aruco_pose.position.x, "y: ", aruco_pose.position.y, "z: ", aruco_pose.position.y)
+    # 
+
+
 
 if __name__=='__main__':
     #* Initialize and Setup node
@@ -58,14 +72,14 @@ if __name__=='__main__':
     # rospy.Subscriber("/controller/orientReal", Float32, callback_robot_orientation) #? use controller published odometry
     # rospy.Subscriber("/aruco_id", int, callback_aruco)
     rospy.Subscriber("/odom", Odometry, callback_robot_odom)
-    rospy.Subscriber("/aruco_id", int, callback_aruco_id)
+    rospy.Subscriber("/aruco_id", Int16, callback_aruco_id)
     rospy.Subscriber("/aruco_pose", Pose, callback_aruco_pose)
-    rospy.Subscriber("/state_flag", bool, callback_state_flag)
+    rospy.Subscriber("/state_flag", Int16, callback_state_flag)
     
     #* Publishers
     points_pub = rospy.Publisher("/points", Float64MultiArray, queue_size=10)
     cmd_vel_pub = rospy.Publisher("/cmd_vel", Twist, queue_size=10)
-    robot_state_pub = rospy.Publisher("/state", int, queue_size=10)
+    robot_state_pub = rospy.Publisher("/state", Int16, queue_size=10)
     # ROBOT STATES
     # 0 = avoid ostacle
     # 1 = search for aruco
