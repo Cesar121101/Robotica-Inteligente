@@ -9,7 +9,7 @@ from tf.transformations import euler_from_quaternion # imported in controlley.py
 
 # Global Variables
 robot_odom = Odometry()
-aurco_pose = Pose()
+aruco_pose = Pose()
 aruco_id = -1
 robot_state = 1
 # robot_position = 0.0
@@ -38,11 +38,20 @@ def callback_aruco_id(msg):
 
 def callback_aruco_pose(msg):
     global aruco_pose
-    aruco_pose = msg.pose.pose
+    aruco_pose = msg
 
 def callback_state_flag(msg):
     global state_flag_msg
     state_flag_msg = msg.data
+
+def init_command():
+    global command
+    command.linear.x = 0.0
+    command.linear.y = 0.0
+    command.linear.z = 0.0
+    command.angular.x = 0.0
+    command.angular.y = 0.0
+    command.angular.z = 0.0
 
 def center_aruco_position(aruco_pose):
     global command
@@ -59,16 +68,17 @@ def center_aruco_position(aruco_pose):
 
     print("x: ", aruco_pose.position.x, "y: ", aruco_pose.position.y, "z: ", aruco_pose.position.y)
     
-    if (aruco_pose.position.x > 80 and aruco_pose.position.x < 110):
+    if (aruco_pose.position.x > -0.1 and aruco_pose.position.x < 0.085):
+    #if (aruco_pose.position.x > -0.1 and aruco_pose.position.x < 0.065):
         print("moving forward")
-        command.linear.x = 0.15
+        command.linear.x = 0.03 #0.03
         command.angular.z = 0.0
-    elif (aruco_pose.position.x < 80):
-        command.linear.x = 0.15
-        command.angular.z = 0.2
-    elif(aruco_pose.position.x > 110):
-        command.linear.x = 0.15
-        command.angular.z = -0.2
+    elif (aruco_pose.position.x < -0.1):
+        command.linear.x = 0.0
+        command.angular.z = 0.00
+    elif(aruco_pose.position.x > 0.065):
+        command.linear.x = 0.0
+        command.angular.z = -0.01
 
 
 
@@ -105,8 +115,11 @@ if __name__=='__main__':
     # Initialize local variables
     points_data = []
 
+    init_command()
+
     try:
         while not rospy.is_shutdown():
+            print("---------ENTERING---------------")
 
             # #? If we use Odometry topic
             robot_position = poseRobot
@@ -149,7 +162,7 @@ if __name__=='__main__':
             #         command.angular.x = 0.0
             #         command.angular.y = 0.0
             #         command.angular.z = 0.0
-            #         cmd_vel_pub.Publish(command)
+            #         cmd_vel_pub.publish(command)
             #         rospy.sleep(1000)
             #         robot_state = 5
             
@@ -165,41 +178,51 @@ if __name__=='__main__':
             #TODO: 2. go_to_aruco
             elif(robot_state == 2):
                 print("STATE 2: GO TO ARUCO")
-                if(state_flag):
+                if(aruco_pose.position.z < 0.162):
                     robot_state = 3
+                    command.linear.x = 0.0
+                    command.angular.z = 0.0 
                 else:
-                    aruco_point_data = [robot_position.position.x + aruco_position.position.x, robot_position.position.y + aruco_position.position.z, "N"]        # calculate to turn robot right
-                    aruco_point_data = [float(aruco_point_data[j]) for j in range(len(aruco_point_data))]                       # make sure all data is float
+                    # aruco_point_data = [robot_position.position.x + aruco_position.position.x, robot_position.position.y + aruco_position.position.z, "N"]        # calculate to turn robot right
+                    # aruco_point_data = [float(aruco_point_data[j]) for j in range(len(aruco_point_data))]                       # make sure all data is float
                     
-                    print("-------POSITION OF THE ROBOT---------")
-                    print([robot_position.position.x, robot_position.position.y, robot_orientation])
-                    print("-------POSITION OF THE ARUCO---------")
-                    print(aruco_point_data)
-                    points_msg.data = aruco_point_data                                                                          # sets it to just one point,  rewrites the array
-                    points_pub.Publish(points_msg)
+                    # print("-------POSITION OF THE ROBOT---------")
+                    # print([robot_position.position.x, robot_position.position.y, robot_orientation])
+                    # print("-------POSITION OF THE ARUCO---------")
+                    # print(aruco_point_data)
+                    # points_msg.data = aruco_point_data                                                                          # sets it to just one point,  rewrites the array
+                    # points_pub.publish(points_msg)
                     # rospy.sleep(500)                                                                                            #! Wait to make sure ROS controller gets aruco
                     #! CHANGE state_flag in controller.py
+                    center_aruco_position(aruco_pose=aruco_pose)
             
             # TODO: 1. Search for aruco
             elif(robot_state == 1):
                 print("STATE 0: Search ARUCO")
                 aruco_position = aruco_pose
+                print(aruco_id)
                 if(state_flag):
-                    if(len(aruco_position) > 0):        # check if an aruco was detected
+                    if(aruco_id != -1):        # check if an aruco was detected
                         #* Change state
+                        print("change state")
                         robot_state = 2                 # when aruco was detected
-                        points_pub.Publish([[]])
+                        command.linear.x = 0.0
+                        command.angular.z = 0.0
                     else:
-                        print("No ARUCO detected.")
+                        print("No ARUCO detected. Pubkishing cmd")
+                        command.linear.x = 0.0
+                        command.angular.z = 0.2
+                        
                 else:                               # when aruco was not found
                     # Holiiiiiiiiiiiii
+                    print("No aruco detected 2")
                     robot_orientation = robot_orientation + (np.pi)/4                                               # turns 45 deg
                     robot_point_data = [robot_position.position.x, robot_position.position.y, robot_orientation]    # point to turn robot to the right
                     robot_point_data = [float(robot_point_data[j]) for j in range(len(robot_point_data))]           # make sure all data is float
                     print("-------POSITION OF THE ROBOT---------")
                     print(robot_point_data)
                     points_msg.data = robot_point_data                                                              # sets it to just one point,  rewrites the array
-                    points_pub.Publish(points_msg)
+                    # points_pub.publish(points_msg)
                     #! CHANGE state_flag in aruco.py
 
                     #? If better only publixhing cmd_vel
@@ -224,12 +247,16 @@ if __name__=='__main__':
                 robot_state = 0
                 point_data = []
                 points_msg.data = point_data
-                points_pub.Publish(points_msg)
+                # points_pub.publish(points_msg)
 
                
             robot_state_pub.publish(robot_state)
+            print("-------COMMAND---------")
+            print(command)
+            cmd_vel_pub.publish(command)
+            points_pub.publish(points_msg)
 
-            rospy.spin()
+            loop_rate.sleep()
 
 
             
