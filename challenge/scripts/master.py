@@ -55,16 +55,12 @@ def init_command():
 
 def center_aruco_position(aruco_pose):
     global command
-
-
-    x1 = 140  # x-coordinate of the top-left corner of the ROI
-    x2 = 500  # Width of the ROI
-
-    #Center of the puzzlebot
-    puzzlebot_x = (x2-x1) /2
-
-    print("------------TEST FOR FINDING CENTER OF CAMERA AND CENTER OR ARUCO-----------------")
-    print("Center Image :" + str(puzzlebot_x))
+    # x1 = 140  # x-coordinate of the top-left corner of the ROI
+    # x2 = 500  # Width of the ROI
+    # #Center of the puzzlebot
+    # puzzlebot_x = (x2-x1) /2
+    # print("------------TEST FOR FINDING CENTER OF CAMERA AND CENTER OR ARUCO-----------------")
+    # print("Center Image :" + str(puzzlebot_x))
 
     print("x: ", aruco_pose.position.x, "y: ", aruco_pose.position.y, "z: ", aruco_pose.position.y)
     
@@ -74,11 +70,13 @@ def center_aruco_position(aruco_pose):
         command.linear.x = 0.03 #0.03
         command.angular.z = 0.0
     elif (aruco_pose.position.x < -0.1):
+        print("turning right")
         command.linear.x = 0.0
-        command.angular.z = 0.00
+        command.angular.z = 0.03
     elif(aruco_pose.position.x > 0.065):
+        print("print left")
         command.linear.x = 0.0
-        command.angular.z = -0.01
+        command.angular.z = -0.03
 
 
 
@@ -128,43 +126,45 @@ if __name__=='__main__':
             # #? Use controller published odometry
             # robot_orientation = robot_orientation_msg
 
-            state_flag = state_flag_msg
-
             #*     ROBOT STATES
             #TODO: 6. leave crate
             if(robot_state == 6):
                 print("STATE 6: LEAVE CRATE")
                 if(state_flag):
                     print("ALL PROCESS FINISHED!!")
+                    init_command()
+                    points_msg = []
                 else:
                     #! MISSING gripper unload
                     print("Leaving ARUCO.")
+                    #! change state_flag here...
+                    state_flag = 1
             
             #TODO: 5. move towards goal
             elif(robot_state == 5):
                 print("STATE 5: MOVE TOWARDS GOAL")
                 if(state_flag):
                     robot_state = 6
+                    state_flag = 0
                 else:
                     print("Moving towards unloading spot.")
                     #! CHANGE state_flag in controller.py
             
-            # #TODO: 4. get away form aruco's base
-            # elif(robot_state == 4):
-            #     if(state_flag):
-            #         robot_state = 5
-            #     else:
-            #         print("Moving away from ARUCO's base.")
-            #         # TODO: Make Puzzlebot move backwards
-            #         command.linear.x = 0.0
-            #         command.linear.y = 0.0
-            #         command.linear.z = 0.0
-            #         command.angular.x = 0.0
-            #         command.angular.y = 0.0
-            #         command.angular.z = 0.0
-            #         cmd_vel_pub.publish(command)
-            #         rospy.sleep(1000)
-            #         robot_state = 5
+            #TODO: 4. get away form aruco's base
+            elif(robot_state == 4):
+                if(state_flag):
+                    init_command()
+                    robot_state = 5
+                else:
+                    print("Moving away from ARUCO's base.")
+                    # TODO: Make Puzzlebot move backwards
+                    command.linear.x = -0.1
+                    command.linear.y = 0.0
+                    command.linear.z = 0.0
+                    command.angular.x = 0.0
+                    command.angular.y = 0.0
+                    command.angular.z = 0.0
+                    state_flag = 1
             
             #TODO: 3. grab_aruco
             elif(robot_state == 3):
@@ -172,18 +172,20 @@ if __name__=='__main__':
                 #! MISSING code for gripper process
                 if(state_flag):
                     robot_state = 5
+                    state_flag = 0
                 else:
                     print("Grabbing ARUCO.")
 
             #TODO: 2. go_to_aruco
             elif(robot_state == 2):
                 print("STATE 2: GO TO ARUCO")
-                if(aruco_pose.position.z < 0.162):
+                if(aruco_pose.position.z < 0.162):  # experimental data of optimal distance for the claw to grab the crate
                     robot_state = 3
+                    state_flag = 0
                     command.linear.x = 0.0
                     command.angular.z = 0.0 
                 else:
-                    # aruco_point_data = [robot_position.position.x + aruco_position.position.x, robot_position.position.y + aruco_position.position.z, "N"]        # calculate to turn robot right
+                    # aruco_point_data = [robot_position.position.x + (aruco_position.position.x * 10) - 0.01, robot_position.position.y + (aruco_position.position.z * 10) - 0.01, "N"]        # calculate to turn robot right
                     # aruco_point_data = [float(aruco_point_data[j]) for j in range(len(aruco_point_data))]                       # make sure all data is float
                     
                     # print("-------POSITION OF THE ROBOT---------")
@@ -193,35 +195,31 @@ if __name__=='__main__':
                     # points_msg.data = aruco_point_data                                                                          # sets it to just one point,  rewrites the array
                     # points_pub.publish(points_msg)
                     # rospy.sleep(500)                                                                                            #! Wait to make sure ROS controller gets aruco
-                    #! CHANGE state_flag in controller.py
                     center_aruco_position(aruco_pose=aruco_pose)
             
             # TODO: 1. Search for aruco
             elif(robot_state == 1):
                 print("STATE 0: Search ARUCO")
                 aruco_position = aruco_pose
-                print(aruco_id)
-                if(state_flag):
-                    if(aruco_id != -1):        # check if an aruco was detected
-                        #* Change state
-                        print("change state")
-                        robot_state = 2                 # when aruco was detected
-                        command.linear.x = 0.0
-                        command.angular.z = 0.0
-                    else:
-                        print("No ARUCO detected. Pubkishing cmd")
-                        command.linear.x = 0.0
-                        command.angular.z = 0.2
-                        
+                print("Aruco ID: ", aruco_id)
+                if(aruco_id != -1):        # check if an aruco was detected
+                    #* Change state
+                    robot_state = 2                 # when aruco was detected
+                    state_flag = 0
+                    command.linear.x = 0.0
+                    command.angular.z = 0.0
                 else:                               # when aruco was not found
-                    # Holiiiiiiiiiiiii
-                    print("No aruco detected 2")
-                    robot_orientation = robot_orientation + (np.pi)/4                                               # turns 45 deg
-                    robot_point_data = [robot_position.position.x, robot_position.position.y, robot_orientation]    # point to turn robot to the right
-                    robot_point_data = [float(robot_point_data[j]) for j in range(len(robot_point_data))]           # make sure all data is float
-                    print("-------POSITION OF THE ROBOT---------")
-                    print(robot_point_data)
-                    points_msg.data = robot_point_data                                                              # sets it to just one point,  rewrites the array
+                    print("No ARUCO detected. Publishing cmd")
+                    command.linear.x = 0.0
+                    command.angular.z = 0.2
+
+                    #? Doing it with points
+                    # robot_orientation = robot_orientation + (np.pi)/4                                               # turns 45 deg
+                    # robot_point_data = [robot_position.position.x, robot_position.position.y, robot_orientation]    # point to turn robot to the right
+                    # robot_point_data = [float(robot_point_data[j]) for j in range(len(robot_point_data))]           # make sure all data is float
+                    # print("--POSITION OF THE ROBOT--")
+                    # print(robot_point_data)
+                    # points_msg.data = robot_point_data                                                              # sets it to just one point,  rewrites the array
                     # points_pub.publish(points_msg)
                     #! CHANGE state_flag in aruco.py
 
@@ -234,12 +232,8 @@ if __name__=='__main__':
                     # command.angular.z = 0.0
                     # cmd_vel_pub.publish(command)
 
-            
             # TODO: 0. Is there obstacle - LiDAR sensor
-            # * Controller does this automatically
-            # if(lidar_sensor):
-            #     turn_to_avoid_obstacle()
-            # else:
+            # * bug2.py -> Controller does this automatically
             
             #TODO: broken state, turn off states
             else:
@@ -247,14 +241,20 @@ if __name__=='__main__':
                 robot_state = 0
                 point_data = []
                 points_msg.data = point_data
-                # points_pub.publish(points_msg)
+                init_command()
 
-               
-            robot_state_pub.publish(robot_state)
-            print("-------COMMAND---------")
+            print("  -------COMMANDS--------  ")
+            print("STATE: ", robot_state)
             print(command)
+            print("---POINTS---")
+            print(points_msg)
+            print("  -----------------------  ")
+            print("---------------------------")
             cmd_vel_pub.publish(command)
             points_pub.publish(points_msg)
+            robot_state_pub.publish(robot_state)
+
+            state_flag = state_flag_msg #! TEST this state flag to work propperly, if not moving on-top
 
             loop_rate.sleep()
 

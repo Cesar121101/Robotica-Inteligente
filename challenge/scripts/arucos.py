@@ -22,7 +22,7 @@ image = Image()
 pose = Pose()
 id = -1
 state = -1
-# state_flag = 0
+state_flag = 0
 
 def camera_callback(msg): 
     global image, id
@@ -30,7 +30,7 @@ def camera_callback(msg):
     bridge = CvBridge()
 
     print("antes del if")
-    print(state)
+    print("State: ", state)
     if state == 1 or state == 2:
         print("despues del if")
         image = bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
@@ -61,17 +61,19 @@ def camera_callback(msg):
                 pose.position.z = tvecs[i][i][2]
                 print("ID:", ids[i][i])
                 print("Position:", tvecs[i][i])
+                state_flag = 1
 
                 # id_pub.publish(id)
                 # pose_pub.publish(pose)
                 # state_flag_pub.publish(True)
             id_pub.publish(id)
             pose_pub.publish(pose)
-            state_flag_pub.publish(1)    # ARUCO was found
-            print("-------POSITION OF THE ARUCO---------")
+            robot_state_flag_pub.publish(state_flag)    # ARUCO was found
+            print("--------POSITION OF THE ARUCO----------")
             print(pose)
-            # state_flag = 1
-            # robot_state_flag_pub.publish(state_flag)
+
+            print("  ----RESETING STATE FLAG TO FALSE----  ")
+            state_flag = 0 #reseting state_flag
 
 
         # Mostrar la imagen con los marcadores detectados y los ejes de coordenadas
@@ -97,10 +99,11 @@ if __name__=='__main__':
     #Setup publishers
     id_pub = rospy.Publisher("aruco_id", Int16, queue_size=10)
     pose_pub = rospy.Publisher("aruco_pose", Pose, queue_size=10)
-    state_flag_pub = rospy.Publisher("/state_flag", Int16, queue_size=10)
-    # robot_state_flag_pub = rospy.Publisher("/state_flag", Int16, queue_size=10)
+    robot_state_flag_pub = rospy.Publisher("state_flag", Int16, queue_size=10)
 
     while not rospy.is_shutdown():
 
         # cv2.destroyAllWindows()
+
+
         rospy.spin()
