@@ -45,6 +45,9 @@ def callback_state_flag(msg):
     state_flag_msg = msg.data
 
 def center_aruco_position(aruco_pose):
+    global command
+
+
     x1 = 140  # x-coordinate of the top-left corner of the ROI
     x2 = 500  # Width of the ROI
 
@@ -55,7 +58,17 @@ def center_aruco_position(aruco_pose):
     print("Center Image :" + str(puzzlebot_x))
 
     print("x: ", aruco_pose.position.x, "y: ", aruco_pose.position.y, "z: ", aruco_pose.position.y)
-    # 
+    
+    if (aruco_pose.position.x > 80 and aruco_pose.position.x < 110):
+        print("moving forward")
+        command.linear.x = 0.15
+        command.angular.z = 0.0
+    elif (aruco_pose.position.x < 80):
+        command.linear.x = 0.15
+        command.angular.z = 0.2
+    elif(aruco_pose.position.x > 110):
+        command.linear.x = 0.15
+        command.angular.z = -0.2
 
 
 
