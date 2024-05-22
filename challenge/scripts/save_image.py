@@ -16,6 +16,7 @@ def camera_callback(msg):
     image = bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
 
     # Mostrar la imagen con los marcadores detectados y los ejes de coordenadas
+    image = cv2.resize(image, (640, 480))
     cv2.imwrite("src/challenge/image.jpg", image)
     # cv2.imshow('ArUco Markers', image)
 

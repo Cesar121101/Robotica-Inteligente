@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python3.7
 import cv2
 import signal
 import threading
@@ -28,7 +28,7 @@ class RobotService(robot_pb2_grpc.RobotServiceServicer):
         # global image_data
         # Simulacion de captura de imagen
         # image = np.zeros((480, 640, 3), dtype=np.uint8)  # Imagen negra de ejemplo
-        with open('src/challenge/image.jpg', 'rb') as f:
+        with open('/home/laptop/8_Semestre/catkin_ws_equipo/src/challenge/image.jpg', 'rb') as f:
             image_data = f.read()
         return robot_pb2.Imagen(data=image_data)
     
@@ -41,15 +41,6 @@ def callback_wl(msg):
 def callback_wr(msg):
     global wr_global
     wr_global = msg.data
-
-def callback_image(msg): 
-    global image, image_data
-    bridge = CvBridge()
-
-    image = bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
-    cv2.imshow('img', image)
-    _, buffer = cv2.imencode('.jpg', image)
-    image_data = buffer.tobytes()
 
 terminate = threading.Event()
 def callback_terminate(signum, frame):
@@ -68,8 +59,7 @@ if __name__ == '__main__':
     # Subscribers
     wl_sub = rospy.Subscriber("/wl", Float32, callback_wl)
     wr_sub = rospy.Subscriber("/wr", Float32, callback_wr)
-    # image_sub = rospy.Subscriber("/video_source/raw", Image, callback_image)
-
+    
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     robot_pb2_grpc.add_RobotServiceServicer_to_server(RobotService(), server)
     server.add_insecure_port('[::]:50051')

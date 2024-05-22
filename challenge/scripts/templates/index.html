@@ -2,19 +2,33 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Streaming de Imágenes</title>
+    <title>Streaming de Imágenes y Datos de Llantas</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.min.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             var socket = io.connect('http://' + document.domain + ':' + location.port + '/test');
+            socket.on('connect', function() {
+                console.log('Conectado al servidor de WebSocket');
+            });
+            socket.on('llantas', function(data) {
+                document.getElementById('wl').innerText = 'Velocidad Llanta Izquierda: ' + data.wl;
+                document.getElementById('wr').innerText = 'Velocidad Llanta Derecha: ' + data.wr;
+                console.log('Datos de llantas recibidos');
+            });
             socket.on('image', function(data) {
                 document.getElementById('image').src = 'data:image/jpeg;base64,' + data.image;
+                console.log('Imagen recibida');
+            });
+            socket.on('disconnect', function() {
+                console.log('Desconectado del servidor de WebSocket');
             });
         });
     </script>
 </head>
 <body>
-    <h1>Streaming de Imágenes</h1>
+    <h1>Streaming de Imágenes y Datos de Llantas</h1>
+    <p id="wl">Velocidad Llanta Izquierda: N/A</p>
+    <p id="wr">Velocidad Llanta Derecha: N/A</p>
     <img id="image" src="" alt="Imagen en tiempo real">
 </body>
 </html>
