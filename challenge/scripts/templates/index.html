@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Streaming de Imágenes</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var socket = io.connect('http://' + document.domain + ':' + location.port + '/test');
+            socket.on('image', function(data) {
+                document.getElementById('image').src = 'data:image/jpeg;base64,' + data.image;
+            });
+        });
+    </script>
+</head>
+<body>
+    <h1>Streaming de Imágenes</h1>
+    <img id="image" src="" alt="Imagen en tiempo real">
+</body>
+</html>
