@@ -13,9 +13,11 @@ lsr_dists = []
 command = Twist()
 setpoint = Twist()
 poseRobot = Pose()
-points = [[0.0, 0.0, "N"], [2.5, 0.0,"N"]]
+# points = [[0.0, 0.0, "N"], [2.5, 0.0,"N"]]
+points = []
 points_msg = Float64MultiArray()
 robot_state_msg = 0
+prev_size = 0
 linear_vel_max = 0.3
 angular_vel_max = 3.0
 linear_vel_min = 0.05
@@ -31,6 +33,7 @@ prevAngle = 0.0
 points_bug2 = []
 first_bug2 = True
 bug2_num_points = 10
+robot_state_flag = 0
 
 def get_arm_status(msg):
     global arm_status
@@ -39,9 +42,9 @@ def get_arm_status(msg):
 def generate_poses():
     global points
     pointsPoses = []
-
+    poseA = Pose()
+    print('points', points)
     for x in points:
-        poseA = Pose()
         poseA.position.x = x[0]
         poseA.position.y = x[1]
         if x[2] == "N":
@@ -137,8 +140,10 @@ def callback_odom(msg):
     poseRobot = msg.pose.pose
 
 def callback_points(msg):
-    global points_msg
+    global points_msg, points, poseRobot
     points_msg = msg.data
+    points = [[poseRobot.position.x, poseRobot.position.y, "N"], [points_msg[0], points_msg[1], "N"]]
+    
 
 def callback_robot_state(msg):
     global robot_state_msg
@@ -301,9 +306,22 @@ if __name__ == '__main__':
     dist_real = 0.0
 
     while not rospy.is_shutdown():
-        points = points_msg
-        if(points > 0):
+        # points = points_msg
+        print(points)
+        print("Estado del robot", robot_state_msg)
+
+        if(robot_state_msg == 1):
+            command.linear.x = 0.0
+            command.angular.z = 0.2
+
+        if(prev_size != len(points)):
+            print("generar poses")
+            points_poses = generate_poses()
+
+        if(points > 0 and robot_state_msg == 2):
             print("LEN:", len(lsr_dists))
+
+            robot_state_flag = 0
             
             robot_position = poseRobot
             (x, y, robot_orientation) = euler_from_quaternion([poseRobot.orientation.x, poseRobot.orientation.y, poseRobot.orientation.z, poseRobot.orientation.w])
@@ -320,12 +338,13 @@ if __name__ == '__main__':
             orientation_goal_pub.publish(angle_goal)
             orientation_real_pub.publish(robot_orientation)
             #setpoint_pub.publish(setpoint)
-            setpoint.angular.z = angle_goal*180/np.pi    
-
+            setpoint.angular.z = angle_goal*180/np.pi  
+            
             if current_state == 0:
                 print("NEXT POINT")
                 print(points)
                 print(current_point)
+                print(len(points_poses))
                 if current_state >= len(points_poses):
                     print("DONE")
                 else:
@@ -545,11 +564,17 @@ if __name__ == '__main__':
             prevTime = currentTime
             prevAngle = robot_orientation
 
-            pub.publish(command)
             setpoint_pub.publish(setpoint)
+            robot_state_flag_pub.publish(robot_state_flag)
         
         else:
             print("No points were found... perhaps it finished.")
-            robot_state_flag_pub.publish(True)
+            robot_state_flag = 1
+            robot_state_flag_pub.publish(robot_state_flag)
+        
+        pub.publish(command)
+        print(command)
+        
+        prev_size = len(points)    
         
         rate.sleep()

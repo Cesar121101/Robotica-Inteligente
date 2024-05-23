@@ -89,7 +89,6 @@ if __name__=='__main__':
     loop_rate = rospy.Rate(rospy.get_param("~node_rate",100))
 
     #* Subscribers
-    rospy.Subscriber("/odom", Float32, callback_robot_odom)                         #? If we use Odometry topic
     # rospy.Subscriber("/controller/orientReal", Float32, callback_robot_orientation) #? use controller published odometry
     # rospy.Subscriber("/aruco_id", int, callback_aruco)
     rospy.Subscriber("/odom", Odometry, callback_robot_odom)
@@ -99,7 +98,6 @@ if __name__=='__main__':
     
     #* Publishers
     points_pub = rospy.Publisher("/points", Float64MultiArray, queue_size=10)
-    cmd_vel_pub = rospy.Publisher("/cmd_vel", Twist, queue_size=10)
     robot_state_pub = rospy.Publisher("/state", Int16, queue_size=10)
     # ROBOT STATES
     # 0 = avoid ostacle
@@ -148,6 +146,7 @@ if __name__=='__main__':
                     state_flag = 0
                 else:
                     print("Moving towards unloading spot.")
+                    points_msg = [1.0, 0.0, "N"]
                     #! CHANGE state_flag in controller.py
             
             #TODO: 4. get away form aruco's base
@@ -184,18 +183,19 @@ if __name__=='__main__':
                     state_flag = 0
                     command.linear.x = 0.0
                     command.angular.z = 0.0 
-                else:
-                    # aruco_point_data = [robot_position.position.x + (aruco_position.position.x * 10) - 0.01, robot_position.position.y + (aruco_position.position.z * 10) - 0.01, "N"]        # calculate to turn robot right
-                    # aruco_point_data = [float(aruco_point_data[j]) for j in range(len(aruco_point_data))]                       # make sure all data is float
+                else:                    
+                    aruco_point_data = [robot_position.position.x + (aruco_position.position.x) - 0.01, robot_position.position.y + (aruco_position.position.z) - 0.01, 0.0]        # calculate to turn robot right
+                    #aruco_point_data=[[float(aruco_point_data[i][j]) for i in range(len(aruco_point_data))] for j in range(len(aruco_point_data[0]))]
+                    aruco_point_data = [float(aruco_point_data[j]) for j in range(len(aruco_point_data))]                       # make sure all data is float
                     
-                    # print("-------POSITION OF THE ROBOT---------")
-                    # print([robot_position.position.x, robot_position.position.y, robot_orientation])
-                    # print("-------POSITION OF THE ARUCO---------")
-                    # print(aruco_point_data)
-                    # points_msg.data = aruco_point_data                                                                          # sets it to just one point,  rewrites the array
+                    print("-------POSITION OF THE ROBOT---------")
+                    print([robot_position.position.x, robot_position.position.y, robot_orientation])
+                    print("-------POSITION OF THE ARUCO---------")
+                    print(aruco_point_data)
+                    points_msg.data = aruco_point_data                                                                          # sets it to just one point,  rewrites the array
                     # points_pub.publish(points_msg)
                     # rospy.sleep(500)                                                                                            #! Wait to make sure ROS controller gets aruco
-                    center_aruco_position(aruco_pose=aruco_pose)
+                    #center_aruco_position(aruco_pose=aruco_pose)
             
             # TODO: 1. Search for aruco
             elif(robot_state == 1):
@@ -250,7 +250,7 @@ if __name__=='__main__':
             print(points_msg)
             print("  -----------------------  ")
             print("---------------------------")
-            cmd_vel_pub.publish(command)
+
             points_pub.publish(points_msg)
             robot_state_pub.publish(robot_state)
 
