@@ -346,7 +346,7 @@ if __name__ == '__main__':
                 print(current_point)
                 print(len(points_poses))
                 if current_state >= len(points_poses):
-                    print("DONE")
+                    print("DONE-1")
                 else:
                     current_point += 1
                     current_state = 1
@@ -397,7 +397,7 @@ if __name__ == '__main__':
                 rospy.loginfo("angular vel: %f", angular_vel)
 
                 if np.abs(angle_error) < 0.05:
-                    print("DONE")
+                    print("DONE-2")
                     current_state = 3
                     command.linear.x = 0.0
                     command.angular.z = 0.0
@@ -444,7 +444,7 @@ if __name__ == '__main__':
                     print("linear vel: ", linear_vel)
 
                     if np.abs(dist_error) < 0.002:
-                        print("DONE")
+                        print("DONE-3")
                         if points_poses[current_point].orientation.z == "N":
                             current_state = 0
                         else:
@@ -489,7 +489,7 @@ if __name__ == '__main__':
                 print("angular vel: ", angular_vel_adj)
 
                 if np.abs(angle_error_adj) < 0.0018:
-                    print("DONE")
+                    print("DONE-4")
                     current_state = 0
                     command.linear.x = 0.0
                     command.angular.z = 0.0

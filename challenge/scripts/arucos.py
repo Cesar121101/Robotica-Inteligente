@@ -77,7 +77,7 @@ def camera_callback(msg):
 
 
         # Mostrar la imagen con los marcadores detectados y los ejes de coordenadas
-        # cv2.imwrite("image.jpg", image)
+        # cv2.imwrite("/home/laptop/8_Semestre/catkin_ws_equipo/src/challenge/image.jpg", image)
         # cv2.imshow('ArUco Markers', image)
 
 def callback_state(msg):

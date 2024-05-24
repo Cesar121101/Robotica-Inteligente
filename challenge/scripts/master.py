@@ -157,7 +157,7 @@ if __name__=='__main__':
                 else:
                     print("Moving away from ARUCO's base.")
                     # TODO: Make Puzzlebot move backwards
-                    command.linear.x = -0.1
+                    command.linear.x = 0.0
                     command.linear.y = 0.0
                     command.linear.z = 0.0
                     command.angular.x = 0.0
@@ -172,6 +172,8 @@ if __name__=='__main__':
                 if(state_flag):
                     robot_state = 5
                     state_flag = 0
+                    command.linear.x = 0.0
+                    command.angular.z = 0.0
                 else:
                     print("Grabbing ARUCO.")
 
@@ -179,12 +181,12 @@ if __name__=='__main__':
             elif(robot_state == 2):
                 print("STATE 2: GO TO ARUCO")
                 if(aruco_pose.position.z < 0.162):  # experimental data of optimal distance for the claw to grab the crate
-                    robot_state = 3
+                    #robot_state = 3
                     state_flag = 0
                     command.linear.x = 0.0
                     command.angular.z = 0.0 
                 else:                    
-                    aruco_point_data = [robot_position.position.x + (aruco_position.position.x) - 0.01, robot_position.position.y + (aruco_position.position.z) - 0.01, 0.0]        # calculate to turn robot right
+                    aruco_point_data = [(robot_position.position.x + aruco_position.position.z*0.7*np.cos(robot_orientation)), (robot_position.position.y + aruco_position.position.z*0.7*np.sin(robot_orientation)), 0.0]        # calculate to turn robot right
                     #aruco_point_data=[[float(aruco_point_data[i][j]) for i in range(len(aruco_point_data))] for j in range(len(aruco_point_data[0]))]
                     aruco_point_data = [float(aruco_point_data[j]) for j in range(len(aruco_point_data))]                       # make sure all data is float
                     
