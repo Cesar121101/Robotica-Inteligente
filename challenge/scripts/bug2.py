@@ -280,7 +280,7 @@ if __name__ == '__main__':
     orientation_goal_pub = rospy.Publisher("/controller/orientGoal", Float32, queue_size=10)
     orientation_real_pub = rospy.Publisher("/controller/orientReal", Float32, queue_size=10)
     setpoint_pub = rospy.Publisher("/controller/setpoint", Twist, queue_size=10)
-    robot_state_flag_pub = rospy.Publisher("/state_flag", Int16, queue_size=10)
+    robot_state_flag_pub = rospy.Publisher("state_flag", Int16, queue_size=10) #! /state_flag
     rospy.init_node("controller")
 
     rospy.Subscriber("/odom", Odometry, callback_odom)
@@ -304,21 +304,24 @@ if __name__ == '__main__':
     angle_goal = 0.0
     angle_error = 0.0
     dist_real = 0.0
+    going_backwards_ugly_counter = 0
 
     while not rospy.is_shutdown():
         # points = points_msg
         print(points)
         print("Estado del robot", robot_state_msg)
 
-        if(robot_state_msg == 1):
-            command.linear.x = 0.0
-            command.angular.z = 0.2
+        #TODO: 6. leave crate
+        if(robot_state_msg == 6):
+            init_command()
 
+
+        #? Checking it point to reach change
         if(prev_size != len(points)):
             print("generar poses")
             points_poses = generate_poses()
-
-        if(points > 0 and robot_state_msg == 2):
+        # TODO: 2. go to aruco or to finishing point
+        if(points > 0 and (robot_state_msg == 2 or robot_state_msg == 5)):
             print("LEN:", len(lsr_dists))
 
             robot_state_flag = 0
@@ -446,7 +449,7 @@ if __name__ == '__main__':
                     if np.abs(dist_error) < 0.002:
                         print("DONE-3")
                         if points_poses[current_point].orientation.z == "N":
-                            current_state = 0
+                            current_state = 8
                         else:
                             current_state = 5
                             superError2 = 0.0
@@ -560,18 +563,55 @@ if __name__ == '__main__':
                         command.angular.z = -0.75
                         print("right final")
                         
+            elif current_state == 8: #? When it's done theoretically
+                print("DONE-5")
+                command.linear.x = 0.0
+                command.angular.z = 0.0
+                robot_state_flag = 1
+                if robot_state_msg == 5:
+                    current_state = 0
 
             prevTime = currentTime
             prevAngle = robot_orientation
 
             setpoint_pub.publish(setpoint)
             robot_state_flag_pub.publish(robot_state_flag)
+
+        # TODO: Make Puzzlebot move backwards
+        elif(robot_state_msg == 4):
+            robot_state_flag = 0
+            if (going_backwards_ugly_counter <= 70):
+                print("MOVE AWAY ARUCO")
+                command.linear.x = -0.2
+                command.linear.y = 0.0
+                command.linear.z = 0.0
+                command.angular.x = 0.0
+                command.angular.y = 0.0
+                command.angular.z = 0.0
+                going_backwards_ugly_counter += 1
+            elif (going_backwards_ugly_counter > 70):
+                command.linear.x = 0.0
+                robot_state_flag = 1
+            robot_state_flag_pub.publish(robot_state_flag)
+
+        # TODO: 1. Search for aruco
+        elif(robot_state_msg == 1):
+            if(robot_state_flag == 0): # aruco.py changes state flag
+                command.linear.x = 0.0
+                command.angular.z = 0.2
+            else:
+                command.linear.x = 0.0
+                command.angular.z = 0.0
         
         else:
             print("No points were found... perhaps it finished.")
-            robot_state_flag = 1
+            robot_state_flag = 0
             robot_state_flag_pub.publish(robot_state_flag)
         
+        if(robot_state_flag == 1):
+            robot_state_flag == 0
+            robot_state_flag_pub.publish(robot_state_flag)
+            
         pub.publish(command)
         print(command)
         

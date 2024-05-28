@@ -31,9 +31,24 @@ def camera_callback(msg):
 
     print("antes del if")
     print("State: ", state)
-    if state == 1 or state == 2:
+    if state == 1:
+        print("  ----RESETING STATE FLAG TO FALSE----  ")
+        state_flag = 0 #reseting state_flag
+
         print("despues del if")
         image = bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
+
+        # Obtener las dimensiones de la imagen
+        height, width = image.shape[:2]
+
+        # Calcular las coordenadas para el recorte central
+        crop_x_start = int(width * 0.25)
+        crop_x_end = int(width * 0.75)
+        crop_y_start = 0
+        crop_y_end = int(height)
+
+        # Recortar la imagen al centro
+        image = image[crop_y_start:crop_y_end, crop_x_start:crop_x_end]
 
         # Convertir la imagen a escala de grises
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -71,9 +86,6 @@ def camera_callback(msg):
             robot_state_flag_pub.publish(state_flag)    # ARUCO was found
             print("--------POSITION OF THE ARUCO----------")
             print(pose)
-
-            print("  ----RESETING STATE FLAG TO FALSE----  ")
-            state_flag = 0 #reseting state_flag
 
 
         # Mostrar la imagen con los marcadores detectados y los ejes de coordenadas

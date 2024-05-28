@@ -17,7 +17,7 @@ robot_state = 1
 poseRobot = Pose()
 points_msg = Float64MultiArray()
 state_flag_msg = True               # State flag = True == finished process
-state_flag = False                  # If state_flag == false. Process has not finished
+state_flag = 0                  # If state_flag == 0. Process has not finished
 command = Twist()
 
 def callback_robot_odom(msg):
@@ -41,17 +41,8 @@ def callback_aruco_pose(msg):
     aruco_pose = msg
 
 def callback_state_flag(msg):
-    global state_flag_msg
-    state_flag_msg = msg.data
-
-def init_command():
-    global command
-    command.linear.x = 0.0
-    command.linear.y = 0.0
-    command.linear.z = 0.0
-    command.angular.x = 0.0
-    command.angular.y = 0.0
-    command.angular.z = 0.0
+    global state_flag
+    state_flag = msg.data
 
 def center_aruco_position(aruco_pose):
     global command
@@ -99,6 +90,7 @@ if __name__=='__main__':
     #* Publishers
     points_pub = rospy.Publisher("/points", Float64MultiArray, queue_size=10)
     robot_state_pub = rospy.Publisher("/state", Int16, queue_size=10)
+    robot_state_flag = rospy.Publisher("/state_flag", Int16, queue_size=10)
     # ROBOT STATES
     # 0 = avoid ostacle
     # 1 = search for aruco
@@ -110,8 +102,6 @@ if __name__=='__main__':
 
     # Initialize local variables
     points_data = []
-
-    init_command()
 
     try:
         while not rospy.is_shutdown():
@@ -130,20 +120,17 @@ if __name__=='__main__':
                 print("STATE 6: LEAVE CRATE")
                 if(state_flag):
                     print("ALL PROCESS FINISHED!!")
-                    init_command()
                     points_msg = []
                 else:
                     #! MISSING gripper unload
                     print("Leaving ARUCO.")
                     #! change state_flag here...
-                    state_flag = 1
             
             #TODO: 5. move towards goal
             elif(robot_state == 5):
                 print("STATE 5: MOVE TOWARDS GOAL")
                 if(state_flag):
                     robot_state = 6
-                    state_flag = 0
                 else:
                     print("Moving towards unloading spot.")
                     points_msg = [1.0, 0.0, "N"]
@@ -151,40 +138,26 @@ if __name__=='__main__':
             
             #TODO: 4. get away form aruco's base
             elif(robot_state == 4):
-                if(state_flag):
-                    init_command()
-                    robot_state = 5
+                if(state_flag == 1):
+                    robot_state = 6
                 else:
                     print("Moving away from ARUCO's base.")
-                    # TODO: Make Puzzlebot move backwards
-                    command.linear.x = 0.0
-                    command.linear.y = 0.0
-                    command.linear.z = 0.0
-                    command.angular.x = 0.0
-                    command.angular.y = 0.0
-                    command.angular.z = 0.0
-                    state_flag = 1
             
             #TODO: 3. grab_aruco
             elif(robot_state == 3):
                 print("STATE 3: GRAB ARUCO")
                 #! MISSING code for gripper process
-                if(state_flag):
-                    robot_state = 5
-                    state_flag = 0
-                    command.linear.x = 0.0
-                    command.angular.z = 0.0
+                if(state_flag == 1):
+                    robot_state = 4
                 else:
                     print("Grabbing ARUCO.")
 
             #TODO: 2. go_to_aruco
             elif(robot_state == 2):
                 print("STATE 2: GO TO ARUCO")
-                if(aruco_pose.position.z < 0.162):  # experimental data of optimal distance for the claw to grab the crate
-                    #robot_state = 3
-                    state_flag = 0
-                    command.linear.x = 0.0
-                    command.angular.z = 0.0 
+                if(state_flag == 1):  # experimental data of optimal distance for the claw to grab the crate
+                    robot_state = 3
+                    #! Check if bug2 does when it finishes in current_state == 8
                 else:                    
                     aruco_point_data = [(robot_position.position.x + aruco_position.position.z*0.7*np.cos(robot_orientation)), (robot_position.position.y + aruco_position.position.z*0.7*np.sin(robot_orientation)), 0.0]        # calculate to turn robot right
                     #aruco_point_data=[[float(aruco_point_data[i][j]) for i in range(len(aruco_point_data))] for j in range(len(aruco_point_data[0]))]
@@ -203,17 +176,12 @@ if __name__=='__main__':
             elif(robot_state == 1):
                 print("STATE 0: Search ARUCO")
                 aruco_position = aruco_pose
-                print("Aruco ID: ", aruco_id)
                 if(aruco_id != -1):        # check if an aruco was detected
                     #* Change state
                     robot_state = 2                 # when aruco was detected
-                    state_flag = 0
-                    command.linear.x = 0.0
-                    command.angular.z = 0.0
+                    print("Aruco ID: ", aruco_id)
                 else:                               # when aruco was not found
                     print("No ARUCO detected. Publishing cmd")
-                    command.linear.x = 0.0
-                    command.angular.z = 0.2
 
                     #? Doing it with points
                     # robot_orientation = robot_orientation + (np.pi)/4                                               # turns 45 deg
@@ -243,12 +211,10 @@ if __name__=='__main__':
                 robot_state = 0
                 point_data = []
                 points_msg.data = point_data
-                init_command()
 
             print("  -------COMMANDS--------  ")
             print("STATE: ", robot_state)
-            print(command)
-            print("---POINTS---")
+            print("      ---POINTS---         ")
             print(points_msg)
             print("  -----------------------  ")
             print("---------------------------")
@@ -256,12 +222,7 @@ if __name__=='__main__':
             points_pub.publish(points_msg)
             robot_state_pub.publish(robot_state)
 
-            state_flag = state_flag_msg #! TEST this state flag to work propperly, if not moving on-top
-
             loop_rate.sleep()
-
-
-            
 
     except rospy.ROSInterruptException:
         pass #Initialize and Setup node
