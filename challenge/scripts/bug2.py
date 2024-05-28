@@ -320,6 +320,7 @@ if __name__ == '__main__':
         if(prev_size != len(points)):
             print("generar poses")
             points_poses = generate_poses()
+            
         # TODO: 2. go to aruco or to finishing point
         if(points > 0 and (robot_state_msg == 2 or robot_state_msg == 5)):
             print("LEN:", len(lsr_dists))
@@ -568,8 +569,6 @@ if __name__ == '__main__':
                 command.linear.x = 0.0
                 command.angular.z = 0.0
                 robot_state_flag = 1
-                if robot_state_msg == 5:
-                    current_state = 0
 
             prevTime = currentTime
             prevAngle = robot_orientation

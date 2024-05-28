@@ -12,8 +12,6 @@ robot_odom = Odometry()
 aruco_pose = Pose()
 aruco_id = -1
 robot_state = 1
-# robot_position = 0.0
-# robot_orientation = 0.0
 poseRobot = Pose()
 points_msg = Float64MultiArray()
 state_flag_msg = True               # State flag = True == finished process
@@ -56,7 +54,6 @@ def center_aruco_position(aruco_pose):
     print("x: ", aruco_pose.position.x, "y: ", aruco_pose.position.y, "z: ", aruco_pose.position.y)
     
     if (aruco_pose.position.x > -0.1 and aruco_pose.position.x < 0.085):
-    #if (aruco_pose.position.x > -0.1 and aruco_pose.position.x < 0.065):
         print("moving forward")
         command.linear.x = 0.03 #0.03
         command.angular.z = 0.0
@@ -80,8 +77,6 @@ if __name__=='__main__':
     loop_rate = rospy.Rate(rospy.get_param("~node_rate",100))
 
     #* Subscribers
-    # rospy.Subscriber("/controller/orientReal", Float32, callback_robot_orientation) #? use controller published odometry
-    # rospy.Subscriber("/aruco_id", int, callback_aruco)
     rospy.Subscriber("/odom", Odometry, callback_robot_odom)
     rospy.Subscriber("/aruco_id", Int16, callback_aruco_id)
     rospy.Subscriber("/aruco_pose", Pose, callback_aruco_pose)
@@ -111,9 +106,6 @@ if __name__=='__main__':
             robot_position = poseRobot
             (x, y, robot_orientation) = euler_from_quaternion([poseRobot.orientation.x, poseRobot.orientation.y, poseRobot.orientation.z, poseRobot.orientation.w])
 
-            # #? Use controller published odometry
-            # robot_orientation = robot_orientation_msg
-
             #*     ROBOT STATES
             #TODO: 6. leave crate
             if(robot_state == 6):
@@ -129,17 +121,17 @@ if __name__=='__main__':
             #TODO: 5. move towards goal
             elif(robot_state == 5):
                 print("STATE 5: MOVE TOWARDS GOAL")
-                if(state_flag):
+                if(state_flag == 1):
                     robot_state = 6
                 else:
                     print("Moving towards unloading spot.")
-                    points_msg = [1.0, 0.0, "N"]
+                    points_msg.data = points_msg.append([0.0, 0.0, 0.0])
                     #! CHANGE state_flag in controller.py
             
             #TODO: 4. get away form aruco's base
             elif(robot_state == 4):
                 if(state_flag == 1):
-                    robot_state = 6
+                    robot_state = 5
                 else:
                     print("Moving away from ARUCO's base.")
             
