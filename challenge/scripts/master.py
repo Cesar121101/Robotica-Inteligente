@@ -16,6 +16,8 @@ poseRobot = Pose()
 points_msg = Float64MultiArray()
 state_flag_msg = True               # State flag = True == finished process
 state_flag = 0                  # If state_flag == 0. Process has not finished
+servo_flag = 0
+state5_flag = 0  
 command = Twist()
 
 def callback_robot_odom(msg):
@@ -41,6 +43,14 @@ def callback_aruco_pose(msg):
 def callback_state_flag(msg):
     global state_flag
     state_flag = msg.data
+
+def callback_servo_flag(msg):
+    global servo_flag
+    servo_flag = msg.data
+
+def callback_state5_flag(msg):
+    global state5_flag
+    state5_flag = msg.data
 
 def center_aruco_position(aruco_pose):
     global command
@@ -81,6 +91,8 @@ if __name__=='__main__':
     rospy.Subscriber("/aruco_id", Int16, callback_aruco_id)
     rospy.Subscriber("/aruco_pose", Pose, callback_aruco_pose)
     rospy.Subscriber("/state_flag", Int16, callback_state_flag)
+    rospy.Subscriber("/servo_flag", Int16, callback_servo_flag)
+    rospy.Subscriber("/state5_flag", Int16, callback_state5_flag)
     
     #* Publishers
     points_pub = rospy.Publisher("/points", Float64MultiArray, queue_size=10)
@@ -121,17 +133,18 @@ if __name__=='__main__':
             #TODO: 5. move towards goal
             elif(robot_state == 5):
                 print("STATE 5: MOVE TOWARDS GOAL")
-                if(state_flag == 1):
-                    robot_state = 6
+                if(state5_flag == 1):
+                    # robot_state = 6
+                    print("Move to state 6")
                 else:
                     print("Moving towards unloading spot.")
-                    points_msg.data = points_msg.append([0.0, 0.0, 0.0])
                     #! CHANGE state_flag in controller.py
             
             #TODO: 4. get away form aruco's base
             elif(robot_state == 4):
                 if(state_flag == 1):
                     robot_state = 5
+                    points_msg.data = [0.0, 0.0, 0.0]
                 else:
                     print("Moving away from ARUCO's base.")
             
@@ -139,7 +152,7 @@ if __name__=='__main__':
             elif(robot_state == 3):
                 print("STATE 3: GRAB ARUCO")
                 #! MISSING code for gripper process
-                if(state_flag == 1):
+                if(servo_flag == 1):
                     robot_state = 4
                 else:
                     print("Grabbing ARUCO.")
@@ -151,7 +164,7 @@ if __name__=='__main__':
                     robot_state = 3
                     #! Check if bug2 does when it finishes in current_state == 8
                 else:                    
-                    aruco_point_data = [(robot_position.position.x + aruco_position.position.z*0.7*np.cos(robot_orientation)), (robot_position.position.y + aruco_position.position.z*0.7*np.sin(robot_orientation)), 0.0]        # calculate to turn robot right
+                    aruco_point_data = [(robot_position.position.x + aruco_position.position.z*0.67*np.cos(robot_orientation)), (robot_position.position.y + aruco_position.position.z*0.67*np.sin(robot_orientation)), 0.0]        # calculate to turn robot right
                     #aruco_point_data=[[float(aruco_point_data[i][j]) for i in range(len(aruco_point_data))] for j in range(len(aruco_point_data[0]))]
                     aruco_point_data = [float(aruco_point_data[j]) for j in range(len(aruco_point_data))]                       # make sure all data is float
                     

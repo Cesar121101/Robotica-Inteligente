@@ -17,7 +17,7 @@ poseRobot = Pose()
 points = []
 points_msg = Float64MultiArray()
 robot_state_msg = 0
-prev_size = 0
+generated_poses = 0
 linear_vel_max = 0.3
 angular_vel_max = 3.0
 linear_vel_min = 0.05
@@ -34,6 +34,7 @@ points_bug2 = []
 first_bug2 = True
 bug2_num_points = 10
 robot_state_flag = 0
+state5_flag = 0
 
 def get_arm_status(msg):
     global arm_status
@@ -126,7 +127,6 @@ def get_angle_robot_and_orientation(robot_orientation, points_poses, current_poi
     return angle
 
 def dist_poses(pose1, pose2):
-
     dist = np.sqrt((np.power((pose2.position.x - pose1.position.x), 2) + np.power((pose2.position.y - pose1.position.y), 2)))
     return dist
 
@@ -281,6 +281,7 @@ if __name__ == '__main__':
     orientation_real_pub = rospy.Publisher("/controller/orientReal", Float32, queue_size=10)
     setpoint_pub = rospy.Publisher("/controller/setpoint", Twist, queue_size=10)
     robot_state_flag_pub = rospy.Publisher("state_flag", Int16, queue_size=10) #! /state_flag
+    state5_flag_pub = rospy.Publisher("state5_flag", Int16, queue_size=10) #! /state5_flag
     rospy.init_node("controller")
 
     rospy.Subscriber("/odom", Odometry, callback_odom)
@@ -308,24 +309,29 @@ if __name__ == '__main__':
 
     while not rospy.is_shutdown():
         # points = points_msg
-        print(points)
+        print("Puntos: ", points)
         print("Estado del robot", robot_state_msg)
 
-        #TODO: 6. leave crate
-        if(robot_state_msg == 6):
-            init_command()
-
-
         #? Checking it point to reach change
-        if(prev_size != len(points)):
-            print("generar poses")
+        if(generated_poses == 0 and (robot_state_msg == 2 or robot_state_msg == 5) and len(points) > 0):
+            generated_poses = 1
             points_poses = generate_poses()
+            print("generar puntos")
+
+        # TODO: 1. Search for aruco
+        if(robot_state_msg == 1):
+            if(robot_state_flag == 0): # aruco.py changes state flag
+                command.linear.x = 0.0
+                command.angular.z = 0.2
+            else:
+                command.linear.x = 0.0
+                command.angular.z = 0.0
             
         # TODO: 2. go to aruco or to finishing point
-        if(points > 0 and (robot_state_msg == 2 or robot_state_msg == 5)):
-            print("LEN:", len(lsr_dists))
+        elif(points > 0 and (robot_state_msg == 2 or robot_state_msg == 5)):
 
             robot_state_flag = 0
+            state5_flag = 0
             
             robot_position = poseRobot
             (x, y, robot_orientation) = euler_from_quaternion([poseRobot.orientation.x, poseRobot.orientation.y, poseRobot.orientation.z, poseRobot.orientation.w])
@@ -345,10 +351,10 @@ if __name__ == '__main__':
             setpoint.angular.z = angle_goal*180/np.pi  
             
             if current_state == 0:
-                print("NEXT POINT")
-                print(points)
-                print(current_point)
-                print(len(points_poses))
+                # print("NEXT POINT")
+                # print(points)
+                # print(current_point)
+                # print(len(points_poses))
                 if current_state >= len(points_poses):
                     print("DONE-1")
                 else:
@@ -390,15 +396,15 @@ if __name__ == '__main__':
                     else:
                         angular_vel = -1.0*angular_vel_min
 
-                print("robot angle: ", robot_orientation)
-                print("angle Goal: ", angle_goal)
-                print("angle Error: ", angle_error)
-                print("angular vel: ", angular_vel)
+                # print("robot angle: ", robot_orientation)
+                # print("angle Goal: ", angle_goal)
+                # print("angle Error: ", angle_error)
+                # print("angular vel: ", angular_vel)
 
-                rospy.loginfo("robot angle: %f", robot_orientation)
-                rospy.loginfo("angle Goal: %f", angle_goal)
-                rospy.loginfo("angle Error: %f", angle_error)
-                rospy.loginfo("angular vel: %f", angular_vel)
+                # rospy.loginfo("robot angle: %f", robot_orientation)
+                # rospy.loginfo("angle Goal: %f", angle_goal)
+                # rospy.loginfo("angle Error: %f", angle_error)
+                # rospy.loginfo("angular vel: %f", angular_vel)
 
                 if np.abs(angle_error) < 0.05:
                     print("DONE-2")
@@ -420,7 +426,6 @@ if __name__ == '__main__':
                 print("MOVING")
                 points_bug2 = delete_path(points_bug2,robot_position)
 
-                # print("LSR: ", lsr_dists[180])
                 if check_dir(lsr_dists, 0.4, 0, 30) or check_dir(lsr_dists, 0.4, 330, 360):
                     current_state = 7
                 else:
@@ -568,13 +573,25 @@ if __name__ == '__main__':
                 print("DONE-5")
                 command.linear.x = 0.0
                 command.angular.z = 0.0
-                robot_state_flag = 1
+
+                if robot_state_msg == 2:
+                    robot_state_flag = 1
+                    current_point = 0
+                    current_state = 0
+                    points = []
+                    generated_poses = 0
+                elif robot_state_msg == 5:
+                    state5_flag = 1
+                else:
+                    robot_state_flag = 0
+                    state5_flag = 0
 
             prevTime = currentTime
             prevAngle = robot_orientation
 
             setpoint_pub.publish(setpoint)
             robot_state_flag_pub.publish(robot_state_flag)
+            state5_flag_pub.publish(state5_flag)
 
         # TODO: Make Puzzlebot move backwards
         elif(robot_state_msg == 4):
@@ -592,28 +609,22 @@ if __name__ == '__main__':
                 command.linear.x = 0.0
                 robot_state_flag = 1
             robot_state_flag_pub.publish(robot_state_flag)
-
-        # TODO: 1. Search for aruco
-        elif(robot_state_msg == 1):
-            if(robot_state_flag == 0): # aruco.py changes state flag
-                command.linear.x = 0.0
-                command.angular.z = 0.2
-            else:
-                command.linear.x = 0.0
-                command.angular.z = 0.0
+        
+        #TODO: 6. leave crate
+        elif(robot_state_msg == 6):
+            init_command()
         
         else:
             print("No points were found... perhaps it finished.")
             robot_state_flag = 0
             robot_state_flag_pub.publish(robot_state_flag)
+            state5_flag_pub.publish(state5_flag)
         
-        if(robot_state_flag == 1):
-            robot_state_flag == 0
-            robot_state_flag_pub.publish(robot_state_flag)
+        # if(robot_state_flag == 1):
+        #     robot_state_flag == 0
+        #     robot_state_flag_pub.publish(robot_state_flag)
             
         pub.publish(command)
         print(command)
-        
-        prev_size = len(points)    
         
         rate.sleep()

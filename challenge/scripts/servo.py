@@ -23,12 +23,11 @@ if __name__=='__main__':
 
     #Setup de publishers
     servo_pub = rospy.Publisher("servo", Float32, queue_size=10)
-    robot_state_flag_pub = rospy.Publisher("/state_flag", Int16, queue_size=10)
+    robot_state_flag_pub = rospy.Publisher("/servo_flag", Int16, queue_size=10)
     rospy.Subscriber("/state", Int16, callback_robot_state)
 
     try:
         while not rospy.is_shutdown():
-
             if robot_state_msg == 3:
                 if degrees < 70.0:
                     degrees += 5
@@ -40,15 +39,16 @@ if __name__=='__main__':
                 # time.sleep(5.0)
                 # isClosing = 0
                 state_flag = 1.0
-                robot_state_flag_pub.publish(state_flag)
             elif degrees == 5.0 and robot_state_msg == 6:
                 # time.sleep(5.0)
                 # isClosing = 1
                 state_flag = 1.0
-                robot_state_flag_pub.publish(state_flag)
+            else:
+                state_flag = 0.0
 
             time.sleep(0.1)
             servo_pub.publish(degrees)
+            robot_state_flag_pub.publish(state_flag)
 
     except rospy.ROSInterruptException:
         pass #Initialize and Setup node
