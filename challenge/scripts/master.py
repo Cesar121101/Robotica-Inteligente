@@ -54,13 +54,6 @@ def callback_state5_flag(msg):
 
 def center_aruco_position(aruco_pose):
     global command
-    # x1 = 140  # x-coordinate of the top-left corner of the ROI
-    # x2 = 500  # Width of the ROI
-    # #Center of the puzzlebot
-    # puzzlebot_x = (x2-x1) /2
-    # print("------------TEST FOR FINDING CENTER OF CAMERA AND CENTER OR ARUCO-----------------")
-    # print("Center Image :" + str(puzzlebot_x))
-
     print("x: ", aruco_pose.position.x, "y: ", aruco_pose.position.y, "z: ", aruco_pose.position.y)
     
     if (aruco_pose.position.x > -0.1 and aruco_pose.position.x < 0.085):
@@ -119,22 +112,43 @@ if __name__=='__main__':
             (x, y, robot_orientation) = euler_from_quaternion([poseRobot.orientation.x, poseRobot.orientation.y, poseRobot.orientation.z, poseRobot.orientation.w])
 
             #*     ROBOT STATES
-            #TODO: 6. leave crate
-            if(robot_state == 6):
-                print("STATE 6: LEAVE CRATE")
-                if(state_flag):
-                    print("ALL PROCESS FINISHED!!")
-                    points_msg = []
-                else:
-                    #! MISSING gripper unload
-                    print("Leaving ARUCO.")
-                    #! change state_flag here...
+            #TODO: 8. leave crate
+            if(robot_state == 8):
+                print("JOB DONE!")
             
+            #TODO: 7. Go to goal aruco
+            elif(robot_state == 7):
+                print("STATE 7: LEAVE CRATE")
+                if(state_flag == 1):  # experimental data of optimal distance for the claw to grab the crate
+                    robot_state = 8
+                    print("Leave aruco")
+                else:                    
+                    aruco_point_data = [(robot_position.position.x + aruco_position.position.z*0.2*np.cos(robot_orientation)), (robot_position.position.y + aruco_position.position.z*0.2*np.sin(robot_orientation)), 0.0]        # calculate to turn robot right
+                    aruco_point_data = [float(aruco_point_data[j]) for j in range(len(aruco_point_data))]                       # make sure all data is float
+                    
+                    print("-------POSITION OF THE ROBOT---------")
+                    print([robot_position.position.x, robot_position.position.y, robot_orientation])
+                    print("-------POSITION OF THE ARUCO---------")
+                    print(aruco_point_data)
+                    points_msg.data = aruco_point_data          
+
+            #TODO: 6. search aruco goal
+            elif(robot_state == 6):
+                print("STATE 6: SEARCHING GOAL")
+                aruco_position = aruco_pose
+                if(aruco_id == 1):        # search an specific arco
+                    #* Change state
+                    robot_state = 7                 # when aruco was detected
+                    print("Aruco ID: ", aruco_id)
+                else:                               # when aruco was not found
+                    print("No ARUCO detected. Publishing cmd")
+
             #TODO: 5. move towards goal
             elif(robot_state == 5):
                 print("STATE 5: MOVE TOWARDS GOAL")
                 if(state5_flag == 1):
-                    # robot_state = 6
+                    robot_state = 6
+                    points_msg.data = []
                     print("Move to state 6")
                 else:
                     print("Moving towards unloading spot.")
@@ -144,7 +158,7 @@ if __name__=='__main__':
             elif(robot_state == 4):
                 if(state_flag == 1):
                     robot_state = 5
-                    points_msg.data = [0.0, 0.0, 0.0]
+                    points_msg.data = [2.3, -0.9, 0.0]
                 else:
                     print("Moving away from ARUCO's base.")
             
@@ -165,7 +179,6 @@ if __name__=='__main__':
                     #! Check if bug2 does when it finishes in current_state == 8
                 else:                    
                     aruco_point_data = [(robot_position.position.x + aruco_position.position.z*0.67*np.cos(robot_orientation)), (robot_position.position.y + aruco_position.position.z*0.67*np.sin(robot_orientation)), 0.0]        # calculate to turn robot right
-                    #aruco_point_data=[[float(aruco_point_data[i][j]) for i in range(len(aruco_point_data))] for j in range(len(aruco_point_data[0]))]
                     aruco_point_data = [float(aruco_point_data[j]) for j in range(len(aruco_point_data))]                       # make sure all data is float
                     
                     print("-------POSITION OF THE ROBOT---------")
@@ -173,10 +186,7 @@ if __name__=='__main__':
                     print("-------POSITION OF THE ARUCO---------")
                     print(aruco_point_data)
                     points_msg.data = aruco_point_data                                                                          # sets it to just one point,  rewrites the array
-                    # points_pub.publish(points_msg)
-                    # rospy.sleep(500)                                                                                            #! Wait to make sure ROS controller gets aruco
-                    #center_aruco_position(aruco_pose=aruco_pose)
-            
+
             # TODO: 1. Search for aruco
             elif(robot_state == 1):
                 print("STATE 0: Search ARUCO")
@@ -188,32 +198,13 @@ if __name__=='__main__':
                 else:                               # when aruco was not found
                     print("No ARUCO detected. Publishing cmd")
 
-                    #? Doing it with points
-                    # robot_orientation = robot_orientation + (np.pi)/4                                               # turns 45 deg
-                    # robot_point_data = [robot_position.position.x, robot_position.position.y, robot_orientation]    # point to turn robot to the right
-                    # robot_point_data = [float(robot_point_data[j]) for j in range(len(robot_point_data))]           # make sure all data is float
-                    # print("--POSITION OF THE ROBOT--")
-                    # print(robot_point_data)
-                    # points_msg.data = robot_point_data                                                              # sets it to just one point,  rewrites the array
-                    # points_pub.publish(points_msg)
-                    #! CHANGE state_flag in aruco.py
-
-                    #? If better only publixhing cmd_vel
-                    # command.linear.x = 0.0
-                    # command.angular.z = 0.5
-                    # cmd_vel_pub.publish(command)
-                    # rospy.sleep(100)
-                    # command.linear.x = 0.0
-                    # command.angular.z = 0.0
-                    # cmd_vel_pub.publish(command)
-
             # TODO: 0. Is there obstacle - LiDAR sensor
             # * bug2.py -> Controller does this automatically
             
             #TODO: broken state, turn off states
             else:
                 print("Error in state logic... setting point topics empty and state to 0")
-                robot_state = 0
+                # robot_state = 0
                 point_data = []
                 points_msg.data = point_data
 

@@ -31,7 +31,7 @@ if __name__=='__main__':
             if robot_state_msg == 3:
                 if degrees < 70.0:
                     degrees += 5
-            if robot_state_msg == 6:
+            if robot_state_msg == 8:
                 if degrees >= 0:
                     degrees -= 5
 
@@ -39,7 +39,7 @@ if __name__=='__main__':
                 # time.sleep(5.0)
                 # isClosing = 0
                 state_flag = 1.0
-            elif degrees == 5.0 and robot_state_msg == 6:
+            elif degrees == 5.0 and robot_state_msg == 8:
                 # time.sleep(5.0)
                 # isClosing = 1
                 state_flag = 1.0
