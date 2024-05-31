@@ -175,6 +175,7 @@ include_directories(
    scripts/arucos.py
    scripts/EFKLocal.py
    scripts/bug2.py
+   scripts/save_image.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
  )
 
