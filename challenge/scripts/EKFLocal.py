@@ -36,7 +36,6 @@ mew = np.matrix([[0.0],
                  [0.0],
                  [0.0]])
 
-
 def new_cal_r():
     return np.matrix([[0.1, 0.0],
                       [0.0, 0.02]])
@@ -74,8 +73,8 @@ def cal_g_z(m,x_robot, y_robot, theta_robot):
 
 # Calculate R IDK
 def cal_r():
-    return np.matrix([[0.001, 0.0],
-                      [0.0, 0.001]])
+    return np.matrix([[0.0, 0.0],
+                      [0.0, 0.0]]) #0.001
 
 # Getting Wl
 def callback_wl(msg):
@@ -90,8 +89,18 @@ def callback_wr(msg):
 def callback_lsr(msg):
     global lsr_dists, angle_increment
     angle_increment = msg.angle_increment
-    lsr_dists = msg.ranges
+    rang = msg.ranges
+    new = []
+    for x in range(0, len(rang)):
+        new.append(rang[x])
+        if rang[x] > 10:
+            new[x] = 10
+        elif rang[x] < -10:
+            new[x] = -10
+    lsr_dists = new
     
+
+        
         
 def gaussian_filter_1d(data, sigma=1):
     # Calculate the size of the filter window
@@ -108,7 +117,6 @@ def gaussian_filter_1d(data, sigma=1):
     
     return filtered_data
 
-
 def lowpass_filter_1d(data, window_size):
     # Define the kernel for the moving average
     kernel = np.ones(window_size) / window_size
@@ -117,7 +125,6 @@ def lowpass_filter_1d(data, window_size):
     filtered_data = np.convolve(data, kernel, mode='same')
     
     return filtered_data
-
 
 def find_corners(ranges, m, orientation, x_robot, y_robot):
     print("Orientiation", orientation)
@@ -128,32 +135,29 @@ def find_corners(ranges, m, orientation, x_robot, y_robot):
     dy = [ranges[i+1] - ranges[i] for i in range(len(ranges)-1)]
     #print(dy)
     for x in range(2, len(dy)-2):
-        if dy[x-1] > 0.05 and dy[x+1] < -0.05 and dy[x-2] > 0.08 and dy[x+2] < -0.08:
-            x_point = (ranges[x]*np.cos((x+180)*(np.pi/180)+orientation)) + x_robot
-            y_point = (ranges[x]*np.sin((x+180)*(np.pi/180)+orientation)) + y_robot
+        if dy[x-1] > 0.005 and dy[x+1] < -0.005 and dy[x-2] > 0.0055 and dy[x+2] < -0.0055:
+            x_point = (ranges[x]*np.cos((x*0.31386)*(np.pi/180)+orientation)) + x_robot
+            y_point = (ranges[x]*np.sin((x*0.31386)*(np.pi/180)+orientation)) + y_robot
 
-
-            if np.sqrt((m.item(0,0) - x_point)*(m.item(0,0) - x_point)+(m.item(1,0)- y_point)*(m.item(1,0)- y_point)) < 2.0:
+            if np.sqrt((m.item(0,0) - x_point)*(m.item(0,0) - x_point)+(m.item(1,0)- y_point)*(m.item(1,0)- y_point)) < 1.0:
                 corners.append(x)
         
-    for x in corners:
-        x_point = ranges[x]*np.cos((x+180)*(np.pi/180)+orientation) + x_robot
-        y_point = ranges[x]*np.sin((x+180)*(np.pi/180)+orientation) + y_robot
+    #for x in corners:
+    #    x_point = ranges[x]*np.cos((x*0.31386)*(np.pi/180)+orientation) + x_robot
+    #    y_point = ranges[x]*np.sin((x*0.31386)*(np.pi/180)+orientation) + y_robot
 
-        corners_x.publish(x_point)
-        corners_y.publish(y_point)
+    #    corners_x.publish(x_point)
+    #    corners_y.publish(y_point)
     return corners
-    
         
 def points_pubs(ranges, orientation, x_robot, y_robot):
     for x in range(0, len(ranges)):
-        x_point = ranges[x]*np.cos((x+180)*(np.pi/180) + orientation) + x_robot
-        y_point = ranges[x]*np.sin((x+180)*(np.pi/180) + orientation) + y_robot
+        if ranges[x] > -10 and ranges[x] < 10:
+            x_point = ranges[x]*np.cos((x*0.31386)*(np.pi/180) + orientation) + x_robot
+            y_point = ranges[x]*np.sin((x*0.31386)*(np.pi/180) + orientation) + y_robot
 
-        points_pub_x.publish(x_point)
-        points_pub_y.publish(y_point)
-
-            
+            points_pub_x.publish(x_point)
+            points_pub_y.publish(y_point)
 
 # Main loop
 if __name__=='__main__':
@@ -165,9 +169,9 @@ if __name__=='__main__':
     loop_rate = rospy.Rate(rospy.get_param("~node_rate",100))
 
     # Subscribers
-    wr_sub = rospy.Subscriber("/puzzlebot_1/wr", Float32, callback_wr)
-    wl_sub = rospy.Subscriber("/puzzlebot_1/wl", Float32, callback_wl)
-    lsr_sub = rospy.Subscriber("/puzzlebot_1/scan", LaserScan, callback_lsr)
+    wr_sub = rospy.Subscriber("/wr", Float32, callback_wr)
+    wl_sub = rospy.Subscriber("/wl", Float32, callback_wl)
+    lsr_sub = rospy.Subscriber("/scan", LaserScan, callback_lsr)
 
     # Publishers
     odom_pub = rospy.Publisher("odom", Odometry , queue_size=10)
@@ -181,8 +185,8 @@ if __name__=='__main__':
 
         while not rospy.is_shutdown():
             if len(lsr_dists) > 0:
-                m_point = np.matrix([[4.0],
-                                     [4.0]])
+                m_point = np.matrix([[3.34],
+                                     [-1.87]])
                 currentTime = rospy.get_time()
                 deltaTime = currentTime-prevTime
 
@@ -201,13 +205,13 @@ if __name__=='__main__':
                 mew_pred = np.matrix([[xCurrent],
                                     [yCurrent],
                                     [zAngle]])
-                points_pubs(lsr_dists, zAngle,xCurrent,yCurrent)
+                # points_pubs(lsr_dists, zAngle,xCurrent,yCurrent)
 
                 # Calculate Covariance
                 Q = cal_q(wr, wl, deltaTime, prevAngle)
                 H = cal_h(mew_pred.item(2,0), v, deltaTime)
 
-                covariance_pred = H @ covariance @ np.transpose(H) + Q
+                covariance_pred = H * covariance * np.transpose(H) + Q
 
                 R = cal_r()
 
@@ -220,22 +224,22 @@ if __name__=='__main__':
 
                 G, z_prediction = cal_g_z(m_point, xCurrent,yCurrent,zAngle)
                 #print(G.shape, covariance.shape, np.transpose(G).shape, R.shape)
-                Z = G @ covariance_pred @ np.transpose(G) + R
+                Z = G * covariance_pred * np.transpose(G) + R
 
-                K = covariance_pred @ np.transpose(G) @ np.linalg.pinv(Z)
+                K = covariance_pred * np.transpose(G) * np.linalg.pinv(Z)
                 print("K", K)
                 print("G:", G)
                 print("COV:",covariance_pred)
                 print("ZL:",z_lidar)
                 print("ZP:",z_prediction)
                 print("DeltaZ", z_lidar-z_prediction)
-                mew = mew_pred + K @ (z_lidar-z_prediction)
+                mew = mew_pred + K * (z_lidar-z_prediction)
 
                 I = np.matrix([[1.0,  0.0,  0.0],
                                [0.0,  1.0,  0.0], 
                                [0.0,  0.0,  1.0]])
 
-                covariance = (I-(K @ G)) @ covariance_pred
+                covariance = (I-(K * G)) * covariance_pred
 
                 #print("X: ", mew.item(0 ,0),", Y: ",  mew.item(1, 0), ", Angle: ", mew.item(2, 0))
 
@@ -282,8 +286,6 @@ if __name__=='__main__':
 
                 # Publish
                 odom_pub.publish(odom_result)
-
-                
 
                 #Wait and repeat
                 loop_rate.sleep()

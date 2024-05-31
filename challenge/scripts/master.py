@@ -123,7 +123,7 @@ if __name__=='__main__':
             elif(robot_state == 4):
                 if(state_flag == 1):
                     robot_state = 5
-                    points_msg.data = [2.35, -1.15, 0.0]
+                    points_msg.data = [2.25, -0.9, 0.0]
                 else:
                     print("Moving away from ARUCO's base.")
             
