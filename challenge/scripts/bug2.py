@@ -13,7 +13,7 @@ lsr_dists = []
 command = Twist()
 setpoint = Twist()
 poseRobot = Pose()
-points = [[0.0, 0.0, "N"], [2.0, 0.0,"N"]]
+points = [[0.0, 0.0, "N"], [2.0, 2.0,"N"]]
 linear_vel_max = 1.0
 angular_vel_max = 3.0
 linear_vel_min = 0.05
@@ -249,7 +249,7 @@ if __name__ == '__main__':
     orientation_real_pub = rospy.Publisher("/controller/orientReal", Float32, queue_size=10)
     setpoint_pub = rospy.Publisher("/controller/setpoint", Twist, queue_size=10)
 
-    rospy.Subscriber("/puzzlebot_1/base_controller/odom", Odometry, callback_odom)
+    rospy.Subscriber("/odom", Odometry, callback_odom)
     rospy.Subscriber("/puzzlebot_1/scan", LaserScan, callback_lsr)
     rospy.init_node("controller")
     rate = rospy.Rate(100)

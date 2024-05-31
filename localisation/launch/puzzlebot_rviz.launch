@@ -13,9 +13,9 @@
 
         <rosparam file="$(find localisation)/config/params.yaml" />
         
-        <node name="puzzlebot_kinematic_model" pkg="localisation" type="puzzlebot_kinematic_model.py"/>
-        <node name="contoller" pkg="localisation" type="controller.py"/>
+        <!--node name="puzzlebot_kinematic_model" pkg="localisation" type="puzzlebot_kinematic_model.py"/>
+        <node name="contoller" pkg="localisation" type="controller.py"/-->
         <node name="joint_state_pub" pkg="localisation" type="joint_state_pub.py"/>
-        <node name="localisation" pkg="localisation" type="localisation.py"/>
+        <!--node name="localisation" pkg="localisation" type="localisation.py"/-->
         
 </launch>

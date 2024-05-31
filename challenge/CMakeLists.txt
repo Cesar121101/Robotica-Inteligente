@@ -173,6 +173,7 @@ include_directories(
    scripts/ros-server.py
    scripts/camera_info.py
    scripts/arucos.py
+   scripts/EFKLocal.py
    scripts/bug2.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
  )
