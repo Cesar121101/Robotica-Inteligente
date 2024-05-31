@@ -58,15 +58,8 @@ def camera_callback(msg):
 
         # Dibujar los marcadores detectados en la imagen y obtener la posicion
         if ids is not None and len(ids) > 0:
-            # Dibujar los marcadores detectados
-            cv2.aruco.drawDetectedMarkers(image, corners)
-
             # Obtener la posicion y orientacion de los marcadores
             rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(corners, 0.05, camera_matrix, dist_coeffs)
-
-            # Dibujar ejes de coordenadas 3D para cada marcador
-            for i in range(len(ids)):
-                cv2.aruco.drawAxis(image, camera_matrix, dist_coeffs, rvecs[i], tvecs[i], 0.1)
 
             # Mostrar la posicion de cada marcador ArUco
             for i in range(len(ids)):
@@ -78,9 +71,6 @@ def camera_callback(msg):
                 print("Position:", tvecs[i][i])
                 state_flag = 1
 
-                # id_pub.publish(id)
-                # pose_pub.publish(pose)
-                # state_flag_pub.publish(True)
             id_pub.publish(id)
             pose_pub.publish(pose)
             robot_state_flag_pub.publish(state_flag)    # ARUCO was found
@@ -114,8 +104,4 @@ if __name__=='__main__':
     robot_state_flag_pub = rospy.Publisher("state_flag", Int16, queue_size=10)
 
     while not rospy.is_shutdown():
-
-        # cv2.destroyAllWindows()
-
-
         rospy.spin()

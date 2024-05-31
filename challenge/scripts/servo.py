@@ -15,7 +15,7 @@ if __name__=='__main__':
     rospy.init_node("servo")
     print("Servo is running")
 
-    degrees = 0.0
+    degrees = -60.0
     state_flag = 0.0
 
     # Configure the Node
@@ -36,12 +36,8 @@ if __name__=='__main__':
                     degrees -= 5
 
             if degrees == 65.0 and robot_state_msg == 3:
-                # time.sleep(5.0)
-                # isClosing = 0
                 state_flag = 1.0
             elif degrees == 5.0 and robot_state_msg == 8:
-                # time.sleep(5.0)
-                # isClosing = 1
                 state_flag = 1.0
             else:
                 state_flag = 0.0

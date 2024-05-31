@@ -1,19 +1,17 @@
 #!/usr/bin/env python
 import rospy
-import tf_conversions
 from geometry_msgs.msg import Twist, Pose
 from std_msgs.msg import Int16, Float32, Float64MultiArray
-from tf.transformations import euler_from_quaternion, quaternion_from_euler
+from tf.transformations import euler_from_quaternion
 import numpy as np
 from nav_msgs.msg import Odometry
-from sensor_msgs.msg import Imu, LaserScan
+from sensor_msgs.msg import LaserScan
 
 angle_increment = 0.0
 lsr_dists = []
 command = Twist()
 setpoint = Twist()
 poseRobot = Pose()
-# points = [[0.0, 0.0, "N"], [2.5, 0.0,"N"]]
 points = []
 points_msg = Float64MultiArray()
 robot_state_msg = 0
@@ -23,11 +21,6 @@ angular_vel_max = 3.0
 linear_vel_min = 0.05
 angular_vel_min = 0.1
 points_poses = []
-print(points)
-superError1 = 0.0
-superError2 = 0.0
-currentTime = 0.0
-prevTime = 0.0
 arm_status = 0
 prevAngle = 0.0
 points_bug2 = []
@@ -44,7 +37,6 @@ def generate_poses():
     global points
     pointsPoses = []
     poseA = Pose()
-    print('points', points)
     for x in points:
         poseA.position.x = x[0]
         poseA.position.y = x[1]
@@ -53,10 +45,8 @@ def generate_poses():
         else:
             poseA.orientation.z = x[2]*(np.pi/180.0)
 
-        print(poseA.orientation.z)
         pointsPoses.append(poseA)
 
-    
     return pointsPoses
 
 def get_angle_robot_and_point(robot_orientation,robot_position, points_poses, current_point):
@@ -71,21 +61,16 @@ def get_angle_robot_and_point(robot_orientation,robot_position, points_poses, cu
     point[0] = working_point.position.x - robot_position.position.x
     point[1] = working_point.position.y - robot_position.position.y
 
-    print(robotV)
-    print(point)
-
     angle = np.arccos(np.dot(robotV, point)/(np.sqrt((point[0]*point[0]) + (point[1]*point[1]))))
-
     cross = np.cross(robotV, point)
+
     if cross < 0:
         angle = angle * -1.0
-
     elif cross > 0:
         angle = angle
-
     else:
         angle = 0.0
-
+    
     return angle
 
 def wrap_to_system(angle, prevAngle):
@@ -109,25 +94,21 @@ def get_angle_robot_and_orientation(robot_orientation, points_poses, current_poi
     point[0] = vectorL*np.cos(working_point.orientation.z)
     point[1] = vectorL*np.sin(working_point.orientation.z)
 
-    print(robotV)
-    print(point)
-
     angle = np.arccos(np.dot(robotV, point)/(np.sqrt((point[0]*point[0]) + (point[1]*point[1]))))
-
     cross = np.cross(robotV, point)
+
     if cross < 0:
         angle = angle * -1.0
-
     elif cross > 0:
         angle = angle
-
     else:
         angle = 0.0
-
+    
     return angle
 
 def dist_poses(pose1, pose2):
     dist = np.sqrt((np.power((pose2.position.x - pose1.position.x), 2) + np.power((pose2.position.y - pose1.position.y), 2)))
+    
     return dist
 
 def callback_lsr(msg):
@@ -150,58 +131,16 @@ def callback_robot_state(msg):
     robot_state_msg = msg.data
     
 def PID_Position(error):
-    global currentTime
-    global prevTime
-    global superError1
-
-    dt = currentTime-prevTime
-    
-    # P
-    #Kp = rospy.get_param("Kp_Position", "No param found")
-    #P = Kp*error
-    #P = 0.7*error
     P = 0.5*error
-
-    # I
-    superError1 += error * dt
-    #Ki = rospy.get_param("Ki_Position", "NO param found")
-    #I = superError1*0.0065
     I = 0.0
-
-    # D
-    #Kd = rospy.get_param("Kd_Position", "NO param found")
-    #D = Kd*((error-prevError)/dt)
     D = 0.0
-
-    #prevError = error
 
     return (P + I + D)
 
 def PID_Orientation(error):
-    global currentTime
-    global prevTime
-    global superError2
-
-    dt = currentTime-prevTime
-    
-    # P
-    #Kp = rospy.get_param("Kp_Orientation", "No param found")
-    #P = Kp*error
-    #P = 0.0005*error
     P = 0.8*error
-
-    # I
-    superError2 += error * dt
-    #Ki = rospy.get_param("Ki_Orientation", "NO param found")
-    #I = superError2*0.006
     I = 0.0
-
-    # D
-    #Kd = rospy.get_param("Kd_Orientation", "NO param found")
-    #D = Kd*((error-prevError)/dt)
     D = 0.0
-
-    #prevError = error
 
     return (P + I + D) 
 
@@ -280,8 +219,8 @@ if __name__ == '__main__':
     orientation_goal_pub = rospy.Publisher("/controller/orientGoal", Float32, queue_size=10)
     orientation_real_pub = rospy.Publisher("/controller/orientReal", Float32, queue_size=10)
     setpoint_pub = rospy.Publisher("/controller/setpoint", Twist, queue_size=10)
-    robot_state_flag_pub = rospy.Publisher("state_flag", Int16, queue_size=10) #! /state_flag
-    state5_flag_pub = rospy.Publisher("state5_flag", Int16, queue_size=10) #! /state5_flag
+    robot_state_flag_pub = rospy.Publisher("state_flag", Int16, queue_size=10)
+    state5_flag_pub = rospy.Publisher("state5_flag", Int16, queue_size=10)
     rospy.init_node("controller")
 
     rospy.Subscriber("/odom", Odometry, callback_odom)
@@ -298,14 +237,13 @@ if __name__ == '__main__':
     new_robot_orientation = 0.0
     prev_position = Pose()
     angular_vel = 0.0
-    prevTime = 0.0
     arm_status = 0
     dist_error = 0.0
     dist_goal= 0.0
     angle_goal = 0.0
     angle_error = 0.0
     dist_real = 0.0
-    going_backwards_ugly_counter = 0
+    back_counter = 0
 
     while not rospy.is_shutdown():
         # points = points_msg
@@ -322,7 +260,7 @@ if __name__ == '__main__':
         if(robot_state_msg == 1 or robot_state_msg == 6):
             if(robot_state_flag == 0): # aruco.py changes state flag
                 command.linear.x = 0.0
-                command.angular.z = 0.35
+                command.angular.z = 0.3
             else:
                 command.linear.x = 0.0
                 command.angular.z = 0.0
@@ -338,7 +276,6 @@ if __name__ == '__main__':
             (x, y, robot_orientation) = euler_from_quaternion([poseRobot.orientation.x, poseRobot.orientation.y, poseRobot.orientation.z, poseRobot.orientation.w])
             robot_orientation = wrap_to_system(robot_orientation, prevAngle)
 
-            currentTime = rospy.get_time()
             print("Current Point: ", current_point)
 
             # publish errors and goals to see graphs
@@ -357,8 +294,6 @@ if __name__ == '__main__':
                 else:
                     current_point += 1
                     current_state = 1
-                    superError1 = 0.0
-                    superError2 = 0.0
                     setpoint.linear.x = points_poses[current_point].position.x
                     setpoint.linear.y = points_poses[current_point].position.y
                     setpoint.linear.z = 0.0
@@ -413,7 +348,7 @@ if __name__ == '__main__':
                 print("MOVING")
                 points_bug2 = delete_path(points_bug2,robot_position)
 
-                if check_dir(lsr_dists, 0.4, 0, 30) or check_dir(lsr_dists, 0.4, 330, 360):
+                if check_dir(lsr_dists, 0.4, 0, 30) or check_dir(lsr_dists, 0.4, 330, 360) and robot_state_msg != 7:
                     current_state = 7
                 else:
 
@@ -509,54 +444,48 @@ if __name__ == '__main__':
                     first_bug2 = False
                 print(points_bug2)
                 angle_indp_bug = get_angle_robot_and_point(robot_orientation, robot_position, points_poses, current_point)
-                #print("Angle IND:", angle_indp_bug)
                 angle_dir = int(abs(round((angle_indp_bug*(180/np.pi))/0.314)))
                 if angle_dir == 360:
                     angle_dir = 0
                 print("Angle:",angle_dir)
                 print("Mes:",lsr_dists[angle_dir])
                 
-                if bug2_in_track(robot_position,points_bug2): #or check_around(lsr_dists):
+                if bug2_in_track(robot_position,points_bug2):
                     # Same code as state 0
                     current_state = 1
-                    superError1 = 0.0
-                    superError2 = 0.0
                     prevAngle = robot_orientation
                     new_robot_orientation = robot_orientation
-                    #first_bug2 = True
                 else:
-                    if check_dir(lsr_dists, 0.4, 0, 36) or check_dir(lsr_dists, 0.4, 325, 360):
+                    # Left
+                    if check_dir(lsr_dists, 0.4, 0, 36) or check_dir(lsr_dists, 0.4, 325, 360): 
                         command.linear.x = 0.0
                         command.angular.z = 0.75
-                        print("Left")
 
                     elif check_dir(lsr_dists, 0.5, 36, 66):
                         command.linear.x = 0.3
                         command.angular.z = -0.3
-                        print("AAAA")
 
+                    # Right
                     elif not(check_dir(lsr_dists, 0.9, 65, 76)):
                         command.linear.x = 0.3
                         command.angular.z = -0.35
-                        print("right")
 
+                    #Forward
                     elif check_dir(lsr_dists, 0.35, 65, 76):
                         command.linear.x = 0.4
                         command.angular.z = 0.0
-                        print("forward")
                         
-
+                    # Emergency
                     elif check_dir(lsr_dists, 0.3, 65, 76):
                         command.linear.x = 0.2
                         command.angular.z = 0.5
-                        print("right emerengcy")
 
+                    # Final right
                     else:
                         command.linear.x = 0.18
                         command.angular.z = -0.75
-                        print("right final")
-                        
-            elif current_state == 8: #? When it's done theoretically
+            # Route finalized   
+            elif current_state == 8:
                 print("DONE-5")
                 command.linear.x = 0.0
                 command.angular.z = 0.0
@@ -578,7 +507,6 @@ if __name__ == '__main__':
                     robot_state_flag = 0
                     state5_flag = 0
 
-            prevTime = currentTime
             prevAngle = robot_orientation
 
             setpoint_pub.publish(setpoint)
@@ -588,7 +516,7 @@ if __name__ == '__main__':
         # TODO: Make Puzzlebot move backwards
         elif(robot_state_msg == 4):
             robot_state_flag = 0
-            if (going_backwards_ugly_counter <= 70):
+            if (back_counter <= 70):
                 print("MOVE AWAY ARUCO")
                 command.linear.x = -0.2
                 command.linear.y = 0.0
@@ -596,8 +524,8 @@ if __name__ == '__main__':
                 command.angular.x = 0.0
                 command.angular.y = 0.0
                 command.angular.z = 0.0
-                going_backwards_ugly_counter += 1
-            elif (going_backwards_ugly_counter > 70):
+                back_counter += 1
+            elif (back_counter > 70):
                 command.linear.x = 0.0
                 robot_state_flag = 1
             robot_state_flag_pub.publish(robot_state_flag)
